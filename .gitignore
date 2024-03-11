@@ -2,3 +2,4 @@ test.py
 logs/
 install/
 *.pyc
+data/
