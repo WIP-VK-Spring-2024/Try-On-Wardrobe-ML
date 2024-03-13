@@ -1,20 +1,21 @@
-version: "3"
+version: "3.8"
 
 services:
 
-  server:
+  api:
  
-    build: server/
-    working_dir: /app
-    # command: python server/fastapi_app.py
-    entrypoint: /bin/bash
-    tty: true
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+
     volumes:
-      - /home/boris/Projects/Virtual Wardrobe/server:/app/server
-      - /home/boris/Projects/Virtual Wardrobe/data:/app/data
+      - ./volume/data:/usr/src/app/volume
  
     ports:
       - 7329:8000
+
+    command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
+    
   # # Второй сервис (контейнер): клиент.
   # # Этот сервис назван 'client'.
 

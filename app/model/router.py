@@ -1,30 +1,27 @@
-# to launch: 
-# uvicorn fastapi_app:app --port=8000
-# or
-# python fastapi_app.py 
-
 import os
+from pathlib import Path
 
-import uvicorn
-from fastapi import File, UploadFile
-from fastapi import FastAPI
+from fastapi import File, UploadFile, APIRouter
 import logging
 
+# TODO: add .env and settings file.
 DATABASE_PATH = "app/data/database"
 PATH_TO_CLOTHES = "{}/user_{}/clothes/image_{}/original"
 PATH_TO_FULL_BODY = "{}/user_{}/full_body/image_{}/original"
 
-logging.basicConfig(level=logging.INFO, filename="logs/fastapi_logs.log",filemode="w")
+log_file_name = "logs/fastapi_logs.log"
+Path(log_file_name).absolute().parent.mkdir(exist_ok=True, parents=True)
+logging.basicConfig(level=logging.INFO, filename=log_file_name, filemode="w")
 
-app = FastAPI()
+router = APIRouter()
 
 def check_path(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
 
-@app.post("/data/load")
-def upload(image_type:str, user_id: int, image_id: int, file: UploadFile = File(...)):
+@router.post("/load")
+async def upload(image_type:str, user_id: int, image_id: int, file: UploadFile = File(...)):
     logging.info("Got POST image request")
     try:
         contents = file.file.read()
