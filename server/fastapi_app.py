@@ -1,5 +1,5 @@
 # to launch: 
-# uvicorn fastapi_app:app
+# uvicorn fastapi_app:app --port=8000
 # or
 # python fastapi_app.py 
 
@@ -50,8 +50,8 @@ def upload(image_type:str, user_id: int, image_id: int, file: UploadFile = File(
 
     return {"message": f"Successfully uploaded full-body"}
 
-if __name__ == "__main__":
-    uvicorn.run(app, port=1234)
+# if __name__ == "__main__":
+#     uvicorn.run(app, port=1234)
 
 # @app.post("/data/cloth")
 # def upload(user_id: int, image_id: int, file: UploadFile = File(...)):

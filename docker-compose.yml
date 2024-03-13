@@ -12,11 +12,9 @@ services:
     volumes:
       - /home/boris/Projects/Virtual Wardrobe/server:/app/server
       - /home/boris/Projects/Virtual Wardrobe/data:/app/data
-      
-  # volumes:
-  #   - ./:/app
+ 
     ports:
-      - 7330:1234
+      - 7329:8000
   # # Второй сервис (контейнер): клиент.
   # # Этот сервис назван 'client'.
 

@@ -2,7 +2,7 @@ import requests
 
 # example of loading image with human
 def human_image_example():
-    url = 'http://localhost:1234/data/load'
+    url = 'http://localhost:7329/data/load'
 
     path_to_image = "../data/example/human.jpg"
 
@@ -13,7 +13,7 @@ def human_image_example():
 
 
 def cloth_image_example():
-    url = 'http://localhost:1234/data/load'
+    url = 'http://localhost:7329/data/load'
 
     path_to_image = "../data/example/t_shirt.png"
 
