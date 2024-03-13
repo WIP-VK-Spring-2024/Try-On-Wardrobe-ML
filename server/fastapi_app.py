@@ -1,13 +1,16 @@
 # to launch: 
 # uvicorn fastapi_app:app
+# or
+# python fastapi_app.py 
 
 import os
 
+import uvicorn
 from fastapi import File, UploadFile
 from fastapi import FastAPI
 import logging
 
-DATABASE_PATH = "data/database"
+DATABASE_PATH = "app/data/database"
 PATH_TO_CLOTHES = "{}/user_{}/clothes/image_{}/original"
 PATH_TO_FULL_BODY = "{}/user_{}/full_body/image_{}/original"
 
@@ -47,6 +50,8 @@ def upload(image_type:str, user_id: int, image_id: int, file: UploadFile = File(
 
     return {"message": f"Successfully uploaded full-body"}
 
+if __name__ == "__main__":
+    uvicorn.run(app, port=1234)
 
 # @app.post("/data/cloth")
 # def upload(user_id: int, image_id: int, file: UploadFile = File(...)):
