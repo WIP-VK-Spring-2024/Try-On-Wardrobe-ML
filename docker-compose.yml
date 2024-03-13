@@ -15,7 +15,12 @@ services:
       - 7329:8000
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
-    
+
+networks:
+  default:
+    external: true
+    name: shared-api-network
+
   # # Второй сервис (контейнер): клиент.
   # # Этот сервис назван 'client'.
 
