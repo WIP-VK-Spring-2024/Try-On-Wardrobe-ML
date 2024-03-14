@@ -4,3 +4,4 @@ install/
 *.pyc
 data/
 .devcontainer
+.virt-ward-env
