@@ -15,34 +15,20 @@ services:
       - 7329:8000
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
+  ml:
+    build:
+      context: .
+      dockerfile: docker/ml/Dockerfile
 
+    volumes:
+      - ./volume/data:/usr/src/app/volume
+ 
+    ports:
+      - 5771:8000
+
+    command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
+  
 networks:
   default:
     external: true
     name: shared-api-network
-
-  # # Второй сервис (контейнер): клиент.
-  # # Этот сервис назван 'client'.
-
-  # client:
-  #   # Здесь 'client/ соответствует пути к папке, которая содержит
-  #   # файл Dockerfile для клиентской части системы.
-
-  #   build: client/
-
-  #   # Команда, которую нужно запустить после создания образа.
-  #   # Следующая команда означает запуск "python ./client.py".
- 
-  #   command: python ./client.py
-
-  #   # Ключевое слово 'network_mode' используется для описания типа сети.
-  #   # Тут мы указываем то, что контейнер может обращаться к 'localhost' компьютера.
-
-  #   network_mode: host
-
-  #   # Ключевое слово 'depends_on' позволяет указывать, должен ли сервис,
-  #   # прежде чем запуститься, ждать, когда будут готовы к работе другие сервисы.
-  #   # Нам нужно, чтобы сервис 'client' дождался бы готовности к работе сервиса 'server'.
- 
-  #   depends_on:
-  #     - server
