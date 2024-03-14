@@ -15,4 +15,4 @@ COPY pyproject.toml poetry.lock /usr/src/app/
 RUN poetry config virtualenvs.create false && \
     poetry install --no-root --no-interaction --no-ansi --only ml
 
-COPY . /usr/src/app/
+# COPY . /usr/src/app/

@@ -15,18 +15,18 @@ services:
       - 7329:8000
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
-  ml:
-    build:
-      context: .
-      dockerfile: docker/ml/Dockerfile
+  # ml:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/ml/Dockerfile
 
-    volumes:
-      - ./volume/data:/usr/src/app/volume
- 
-    ports:
-      - 5771:8000
+  #   volumes:
+  #     # - ./volume/data:/usr/src/app/volume
+  #     - .:/usr/src/app/
+  #   ports:
+  #     - 5771:8000
 
-    command: bash -c "poetry run python ml/run.py" #"sleep 10000"
+  #   command: bash -c "sleep 10000" # "poetry run python ml/run.py" #"sleep 10000"
   
 networks:
   default:
