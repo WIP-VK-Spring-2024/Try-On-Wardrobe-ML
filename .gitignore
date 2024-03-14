@@ -1,7 +1,7 @@
-test.py
-logs/
-install/
-*.pyc
 data/
-.devcontainer
+
+
+*.pyc
+__pycache__
 virt-ward-env
+.vscode
