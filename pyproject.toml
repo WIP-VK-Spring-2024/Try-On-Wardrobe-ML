@@ -23,6 +23,19 @@ isort = "^5.13.2"
 pylint = "^3.1.0"
 pylint-pytest = "^1.1.7"
 
+[tool.poetry.group.ml.dependencies]
+torch = {url = "https://download.pytorch.org/whl/cu118/torch-2.0.1%2Bcu118-cp310-cp310-linux_x86_64.whl"}
+torchvision = {url = "https://download.pytorch.org/whl/cu118/torchvision-0.15.2%2Bcu118-cp310-cp310-linux_x86_64.whl"}
+opencv-python = "4.7.0.72"
+diffusers = "0.14.0"
+transformers = "4.27.3"
+scipy = "1.11.4"
+matplotlib = "3.7.1"
+scikit-image = "^0.22.0"
+ninja = "^1.11.1.1"
+pillow = "^10.2.0"
+detectron2 = {url = "https://dl.fbaipublicfiles.com/detectron2/wheels/cu113/torch1.10/detectron2-0.6%2Bcu113-cp39-cp39-linux_x86_64.whl"}
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
