@@ -15,7 +15,7 @@ services:
       - 7329:8000
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
-  ml:
+  ml_dev:
     build:
       context: .
       dockerfile: docker/ml/Dockerfile
