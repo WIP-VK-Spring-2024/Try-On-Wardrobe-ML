@@ -1,4 +1,6 @@
 import torch
-#from processing.tags import Tagger
-#import torch
-#print(torch.cuda.is_available())
+
+
+message = "CUDA IS AVAILABLE" if torch.cuda.is_available() else "ERROR! CUDA IS NOT AVAILABLE"
+
+print(message)

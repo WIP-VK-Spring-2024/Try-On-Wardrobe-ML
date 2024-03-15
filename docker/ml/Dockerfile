@@ -17,9 +17,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install Python and pip
 RUN apt-get update && apt-get install -y python3-pip
-RUN python3 -m pip install poetry
+
+RUN pip3 install -U pip && \
+    pip3 install poetry
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8
+
+COPY pyproject.toml poetry.lock /usr/src/app/
+
+RUN poetry config virtualenvs.create true && \
+    poetry install --no-root --no-interaction --no-ansi 
+
 # Install PyTorch with CUDA support
 # RUN pip3 install torch==2.0.1+cu118 torchvision==0.15.2+cu118 -f https://download.pytorch.org/whl/cu118/torch_stable.html
 
 
-COPY . /usr/src/app/
+# COPY . /usr/src/app/
