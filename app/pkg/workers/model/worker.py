@@ -1,6 +1,7 @@
 """Model worker for read task queue."""
 
-from app.internal.repository.rabbitmq.model import ModelRepository
+from app.internal.repository.rabbitmq.model_task import ModelTaskRepository
+from app.internal.repository.rabbitmq.model_response import ModelRespRepository
 
 class ModelWorker:
     """Model worker for read task queue."""
@@ -9,10 +10,13 @@ class ModelWorker:
 
     def __init__(
         self,
-        rabbit_repository: ModelRepository,
+        task_repository: ModelTaskRepository,
+        resp_repository: ModelRespRepository,
     ):
-        self.rabbit_repository = rabbit_repository
+        self.task_repository = task_repository
+        self.resp_repository = resp_repository
 
     async def listen_queue(self):
-        async for message in self.rabbit_repository.read():
+        async for message in self.task_repository.read():
             print(message)
+            await self.resp_repository.create(cmd=message)

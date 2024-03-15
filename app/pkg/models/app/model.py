@@ -11,6 +11,7 @@ from app.pkg.settings import settings
 __all__ = [
     "CreateTaskCmd",
     "CreateTaskFileCmd",
+    "CreateRespFileCmd",
 ]
 
 
@@ -44,6 +45,9 @@ class CreateTaskCmd(BaseModel):
 
 class CreateTaskFileCmd(CreateTaskCmd):
     file_path: str = ModelFields.file_path
+
+class CreateRespFileCmd(CreateTaskFileCmd):
+    pass
 
 
 class ResponseMessage(BaseModel):

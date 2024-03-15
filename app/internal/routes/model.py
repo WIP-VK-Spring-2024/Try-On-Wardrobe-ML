@@ -6,7 +6,7 @@ from pydantic import PositiveInt
 from app.pkg.logger import get_logger
 from app.pkg.settings import settings
 from app.pkg.models import ImageType, CreateTaskCmd, CreateTaskFileCmd, ResponseMessage
-from app.internal.repository.rabbitmq.model import ModelRepository
+from app.internal.repository.rabbitmq.model_task import ModelTaskRepository
 
 
 logger = get_logger(__name__)
@@ -28,7 +28,7 @@ async def upload(
     user_id: PositiveInt,
     image_id: PositiveInt,
     file: UploadFile = File(...),
-    model_repository: ModelRepository = Depends(ModelRepository),
+    model_repository: ModelTaskRepository = Depends(ModelTaskRepository),
 ):
     cmd = CreateTaskCmd(
         image_type=image_type,

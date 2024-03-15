@@ -5,7 +5,7 @@ from app.internal.repository.rabbitmq.base_repository import BaseRepository
 from app.pkg.models import CreateTaskFileCmd
 
 
-class ModelRepository(BaseRepository):
+class ModelTaskRepository(BaseRepository):
     """Repository for model task queue."""
 
     QUEUE_NAME: str = "model"
