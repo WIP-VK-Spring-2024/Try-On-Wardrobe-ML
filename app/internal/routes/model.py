@@ -24,6 +24,7 @@ model_router = APIRouter(
     description="Upload image.",
 )
 async def upload(
+    clothes_id: UUID4,
     user_id: UUID4,
     person_file: UploadFile = File(...),
     clothes_file: UploadFile = File(...),
@@ -39,6 +40,7 @@ async def upload(
     clothes_file_name, clothes_file_path = await file_service.save_file(clothes_file)
 
     cmd = CreateTaskFileCmd(
+        clothes_id=clothes_id,
         user_id=user_id,
         person_file_name=person_file_name,
         person_file_path=str(person_file_path),

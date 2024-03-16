@@ -30,7 +30,7 @@ class ModelWorker:
             # res_file_name, res_file_path = self.file_service.get_file_path(
             #     extension='png',
             # )
-            res_file_name, res_file_path = self.file_service.get_mock_file_path()
+            res_file_name, res_file_path = self.file_service.get_mock_file_path(file_id=message.clothes_id)
             # try_on_file_path = await try_on_model.pipeline(try_on_file_path)
             
             logger.info(
@@ -39,6 +39,7 @@ class ModelWorker:
                 res_file_path,
             )
             cmd = CreateRespFileCmd(
+                clothes_id=message.clothes_id,
                 user_id=message.user_id,
                 res_file_name=res_file_name,
                 res_file_path=str(res_file_path),

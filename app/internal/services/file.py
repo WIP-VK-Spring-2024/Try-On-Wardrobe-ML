@@ -33,8 +33,9 @@ class FileService:
 
         return file_name, file_path
     
-    def get_mock_file_path(self) -> Tuple[str, pathlib.Path]:
-        file_name = "2a6cfbc7-09dd-4425-9227-0bdf7e70dd88.png"
+    def get_mock_file_path(self, file_id: uuid.uuid4 = None) -> Tuple[str, pathlib.Path]:
+        file_id = file_id if file_id else "2a6cfbc7-09dd-4425-9227-0bdf7e70dd88.png"
+        file_name = f'{file_id}.png'
         file_path = pathlib.Path(self.default_path, file_name).absolute()
 
         return file_name, file_path
