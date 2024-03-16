@@ -1,8 +1,10 @@
 """Models of model task object."""
 
+import uuid
+
 from pydantic import PositiveInt
 from pydantic.fields import Field
-from pydantic import validator
+from pydantic import UUID4
 
 from app.pkg.models.base import BaseModel as Model
 from app.pkg.models.app.image_type import ImageType
@@ -22,8 +24,8 @@ class BaseModel(Model):
 class ModelFields:
     """Model fields of user."""
 
-    user_id: PositiveInt = Field(description="User id.", example=1)
-    image_id: PositiveInt = Field(description="Image id.", example=1)
+    user_id: UUID4 = Field(description="User id.", example=uuid.uuid4)
+    image_id: UUID4 = Field(description="Image id.", example=uuid.uuid4)
     image_type: ImageType = Field(
         description="Image type.",
         example=ImageType.CLOTH,
@@ -38,8 +40,8 @@ class ModelFields:
 
 class CreateTaskCmd(BaseModel):
     image_type: ImageType = ModelFields.image_type
-    user_id: PositiveInt = ModelFields.user_id
-    image_id: PositiveInt = ModelFields.image_id
+    user_id: UUID4 = ModelFields.user_id
+    image_id: UUID4 = ModelFields.image_id
     file_name: str = ModelFields.file_name
 
 

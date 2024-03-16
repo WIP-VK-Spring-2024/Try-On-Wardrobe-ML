@@ -1,8 +1,8 @@
-import os
+import uuid
 from pathlib import Path
 
 from fastapi import File, UploadFile, status, Depends, APIRouter
-from pydantic import PositiveInt
+from pydantic import UUID4
 from app.pkg.logger import get_logger
 from app.pkg.settings import settings
 from app.pkg.models import ImageType, CreateTaskCmd, CreateTaskFileCmd, ResponseMessage
@@ -25,8 +25,8 @@ model_router = APIRouter(
 )
 async def upload(
     image_type: ImageType,
-    user_id: PositiveInt,
-    image_id: PositiveInt,
+    user_id: UUID4,
+    image_id: UUID4,
     file: UploadFile = File(...),
     model_repository: ModelTaskRepository = Depends(ModelTaskRepository),
 ):
@@ -37,16 +37,16 @@ async def upload(
         file_name=file.filename,
     )
     logger.info("Got POST image request filename [%s]", file.filename)
-    contents = await file.read()
     extension = file.filename.split(".")[-1]
     save_filename = f'{cmd.image_id}.{extension}'
+    # save_filename = f'{uuid.uuid4()}.{extension}'
 
     default_path = str(settings.API_FILESYSTEM_FOLDER)
     if cmd.image_type == ImageType.FULL_BODY.value:
-        file_path = f"{default_path}/user_{cmd.user_id}/full_body/image_{cmd.image_id}/original"
+        file_path = f"{settings.API_FILESYSTEM_FOLDER}/try-on-full-body"
 
     elif cmd.image_type == ImageType.CLOTH.value:
-        file_path = f"{default_path}/user_{cmd.user_id}/clothes/image_{cmd.image_id}/original"
+        file_path = f"{settings.API_FILESYSTEM_FOLDER}/try-on-cloth"
 
     else:
         raise Exception(f"Incorrect input image_type. Should be one of: {ImageType.CLOTH}, {ImageType.FULL_BODY}")
@@ -64,6 +64,7 @@ async def upload(
         file_path=str(file_path),
     )
 
+    contents = await file.read()
     with open(cmd.file_path, 'wb') as f:
         f.write(contents)
 

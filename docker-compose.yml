@@ -18,6 +18,9 @@ services:
 
   model:
     container_name: wardrobe-model
+    
+    restart: unless-stopped
+
     build:
       context: .
       dockerfile: docker/model/Dockerfile
