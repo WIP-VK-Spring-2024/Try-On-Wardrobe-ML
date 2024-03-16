@@ -39,17 +39,21 @@ class ModelFields:
 
 
 class CreateTaskCmd(BaseModel):
-    image_type: ImageType = ModelFields.image_type
     user_id: UUID4 = ModelFields.user_id
-    image_id: UUID4 = ModelFields.image_id
-    file_name: str = ModelFields.file_name
+
+    person_file_name: str = ModelFields.file_name
 
 
 class CreateTaskFileCmd(CreateTaskCmd):
-    file_path: str = ModelFields.file_path
+    person_file_path: str = ModelFields.file_path
+    
+    clothes_file_name: str = ModelFields.file_name
+    clothes_file_path: str = ModelFields.file_path
 
-class CreateRespFileCmd(CreateTaskFileCmd):
-    pass
+class CreateRespFileCmd(BaseModel):
+    user_id: UUID4 = ModelFields.user_id
+    res_file_name: str = ModelFields.file_name
+    res_file_path: str = ModelFields.file_path
 
 
 class ResponseMessage(BaseModel):
