@@ -17,7 +17,6 @@ aio-pika = "^9.1.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.2"
-black = "^24.2.0"
 flake8 = "^7.0.0"
 isort = "^5.13.2"
 pylint = "^3.1.0"
@@ -34,7 +33,6 @@ matplotlib = "3.7.1"
 scikit-image = "^0.22.0"
 ninja = "^1.11.1.1"
 pillow = "^10.2.0"
-detectron2 = {url = "https://dl.fbaipublicfiles.com/detectron2/wheels/cu113/torch1.10/detectron2-0.6%2Bcu113-cp39-cp39-linux_x86_64.whl"}
 
 [build-system]
 requires = ["poetry-core"]

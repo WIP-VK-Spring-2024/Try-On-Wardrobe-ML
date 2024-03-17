@@ -5,7 +5,8 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from PIL import Image
 from collections import OrderedDict
-import os
+
+from app.pkg.settings import settings
 
 from humanparsing import networks
 from humanparsing.utils.transforms import get_affine_transform
@@ -14,7 +15,8 @@ from humanparsing.utils.transforms import transform_logits
 class HumanParsing:
 
     def __init__(self):
-        self.WEIGHTS_PATH = "/usr/src/app/app/pkg/ml/weights/human_parsing.pth"
+        
+        self.WEIGHTS_PATH = f"{settings.ML.WEIGHTS_PATH}/human_parsing.pth"
         #self.body_estimation = Body(self.WEIGHTS_PATH)
 
     def __call__(self, input_path, output_path,):
@@ -31,7 +33,7 @@ class HumanParsing:
         input_size = [512, 512] # this will be made in pipeline. No need extra resize 
         label = ['Background', 'Hat', 'Hair', 'Sunglasses', 'Upper-clothes', 'Skirt', 'Pants', 'Dress', 'Belt',
                   'Left-shoe', 'Right-shoe', 'Face', 'Left-leg', 'Right-leg', 'Left-arm', 'Right-arm', 'Bag', 'Scarf']
-      
+
         model = networks.init_model('resnet101', num_classes=num_classes, pretrained=None)
 
         state_dict = torch.load(self.WEIGHTS_PATH)['state_dict']

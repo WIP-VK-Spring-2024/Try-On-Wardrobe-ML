@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import json
 
+from app.pkg.settings import settings
+
 from openpose.src import model
 from openpose.src import util
 from openpose.src.body import Body
@@ -11,7 +13,7 @@ from openpose.src.hand import Hand
 class PoseEstimation:
 
     def __init__(self):
-        self.WEIGHTS_PATH = "/usr/src/app/app/pkg/ml/weights/body_pose_model.pth"
+        self.WEIGHTS_PATH = f"{settings.ML.WEIGHTS_PATH}/body_pose_model.pth"
         self.body_estimation = Body(self.WEIGHTS_PATH)
 
     def __call__(self, input_path, key_point_output_path, output_path,):
@@ -46,6 +48,3 @@ if __name__ == '__main__':
        "/usr/src/app/volume/data/pose/keypoints.json",
        "/usr/src/app/volume/data/pose/posed_human.png",
        )
-    
-
-

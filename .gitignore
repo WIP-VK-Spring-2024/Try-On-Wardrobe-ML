@@ -1,6 +1,8 @@
 ### ML ignore
 app/pkg/ml/weights
 app/pkg/ml/try_on/preprocessing/openpose/images
+# app/pkg/ml/try_on/preprocessing/detectron/images
+
 
 ### VisualStudioCode template
 .vscode/*

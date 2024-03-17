@@ -1,7 +1,5 @@
 import cv2
 
-#from resize import resize_with_pad
-
 class Resizer:
     
     def __init__(self):

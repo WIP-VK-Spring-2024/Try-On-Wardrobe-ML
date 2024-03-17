@@ -147,6 +147,14 @@ class Logging(_Settings):
             v.mkdir(exist_ok=True, parents=True)
         return v
 
+
+class ML(_Settings):
+    """ML settings."""
+
+    #: pathlib.Path: Path of models weights.
+    WEIGHTS_PATH: pathlib.Path = pathlib.Path("./app/pkg/ml/weights")
+
+
 class Settings(_Settings):
     """APP settings."""
 
@@ -157,6 +165,8 @@ class Settings(_Settings):
     CLIENTS: Clients
 
     LOGGER: Logging
+
+    ML: ML
 
     API_FILESYSTEM_FOLDER: pathlib.Path = pathlib.Path("./volume/data")
 
