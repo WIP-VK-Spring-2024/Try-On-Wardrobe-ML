@@ -51,4 +51,3 @@ def resize_with_pad(im, target_width, target_height):
 if __name__ == '__main__':
     prepr = Resizer()
     prepr('/usr/src/app/data/example/human.png', '/usr/src/app/volume/data/resized/resized_human.png')
-
