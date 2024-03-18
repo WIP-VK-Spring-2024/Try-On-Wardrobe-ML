@@ -6,17 +6,18 @@ from torch.utils.data import DataLoader
 from PIL import Image
 from collections import OrderedDict
 
-#from app.pkg.settings import settings
 
-from .humanparsing import networks
-from .humanparsing.utils.transforms import get_affine_transform
-from .humanparsing.utils.transforms import transform_logits
+from app.pkg.settings import settings
+
+from app.pkg.ml.try_on.preprocessing.humanparsing import networks
+from app.pkg.ml.try_on.preprocessing.humanparsing.utils.transforms import get_affine_transform
+from app.pkg.ml.try_on.preprocessing.humanparsing.utils.transforms import transform_logits
 
 class HumanParsing:
 
     def __init__(self):
         
-        self.WEIGHTS_PATH = f"/usr/src/app/app/pkg/ml/weights/human_parsing.pth"
+        self.WEIGHTS_PATH = f"{settings.ML.WEIGHTS_PATH}/human_parsing.pth"
         #self.body_estimation = Body(self.WEIGHTS_PATH)
 
     def __call__(self, input_path, output_path,):

@@ -4,8 +4,8 @@ from skimage import io
 import torch
 from PIL import Image
 
-from .RMBG.briarmbg import BriaRMBG
-from .RMBG.utilities import preprocess_image, postprocess_image
+from app.pkg.ml.try_on.preprocessing.RMBG.briarmbg import BriaRMBG
+from app.pkg.ml.try_on.preprocessing.RMBG.utilities import preprocess_image, postprocess_image
 
 
 class ClothPreprocessor:
@@ -76,9 +76,9 @@ class ClothPreprocessor:
         no_bg_image.save(output_path)
 
 
-# if __name__ == '__main__':
-#     cp = ClothPreprocessor()
-#     cp.remove_background('/usr/src/app/data/example/t_shirt.png',
-#        '/usr/src/app/volume/data/no_background/t_shirt.png'
-#        )
-#     cp.crop_and_pad('/usr/src/app/volume/data/no_background/t_shirt.png', "/usr/src/app/volume/data/no_background/t_shirt_rc.png")
+if __name__ == '__main__':
+    cp = ClothPreprocessor()
+    cp.remove_background('/usr/src/app/data/example/t_shirt.png',
+       '/usr/src/app/volume/data/no_background/t_shirt.png'
+       )
+    cp.crop_and_pad('/usr/src/app/volume/data/no_background/t_shirt.png', "/usr/src/app/volume/data/no_background/t_shirt_rc.png")

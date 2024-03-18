@@ -7,3 +7,11 @@ scikit-image
 pillow
 ninja
 accelerate
+
+fastapi
+uvicorn
+requests
+python-multipart
+pydantic==1.10.13
+aio-pika
+python-dotenv

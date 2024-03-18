@@ -3,6 +3,8 @@ import torch
 import numpy as np
 import os, json, cv2, random
 
+from app.pkg.settings import settings
+
 # import some common detectron2 utilities
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
@@ -22,8 +24,8 @@ from densepose.vis.extractor import (
 class DensePoseEstimation:
 
     def __init__(self):
-        self.WEIGHTS_PATH = f"/usr/src/app/app/pkg/ml/weights/dense_pose.pkl"
-        self.cfg_path = "/usr/src/app/app/pkg/ml/try_on/preprocessing/detectron2/projects/DensePose/configs/densepose_rcnn_R_50_FPN_s1x.yaml"
+        self.WEIGHTS_PATH = f"{settings.ML.WEIGHTS_PATH}/dense_pose.pkl"
+        self.cfg_path = "app/pkg/ml/try_on/preprocessing/detectron2/projects/DensePose/configs/densepose_rcnn_R_50_FPN_s1x.yaml"
         self.setup()
     
     # setup cfg
