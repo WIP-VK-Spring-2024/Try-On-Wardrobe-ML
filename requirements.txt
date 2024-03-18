@@ -5,3 +5,5 @@ scipy
 matplotlib
 scikit-image
 pillow
+ninja
+accelerate

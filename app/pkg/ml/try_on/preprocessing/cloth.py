@@ -1,10 +1,11 @@
 import cv2 
 import numpy as np
 from skimage import io
-import torch, os
+import torch
 from PIL import Image
-from RMBG.briarmbg import BriaRMBG
-from RMBG.utilities import preprocess_image, postprocess_image
+
+from .RMBG.briarmbg import BriaRMBG
+from .RMBG.utilities import preprocess_image, postprocess_image
 
 
 class ClothPreprocessor:
@@ -39,12 +40,6 @@ class ClothPreprocessor:
             # clear memory
             del result        
         # selecting images to crop only cloth
-        # tops = result_image.argmax(0)#.tolist() #,#result_image.argmin(0) )
-        # top_idx = tops[tops > 0].min()
-
-#        print(tops)
-#        print(tops.min())
-        # save result
         
         pil_im = Image.fromarray(result_image[:,:])
 #        print(result_image.shape, pil_im.shape)
@@ -66,12 +61,12 @@ class ClothPreprocessor:
         cropped_image = image[min_row:max_row+1, min_col:max_col+1]
         crop_shape = cropped_image.shape
         # Padding
-        pad_line = np.zeros((pad, crop_shape[1], 4)) # 3
-        print(pad_line.shape, crop_shape)
+        pad_line = np.zeros((pad, crop_shape[1], 4), dtype=np.uint8) # 3
         padded_image = np.concatenate((pad_line, cropped_image, pad_line), axis=0)
-        print(padded_image.dtype, cropped_image.dtype)
-        # bottom_idx = bottoms[bottoms > 0].min()
+        pad_column = np.zeros((padded_image.shape[0],pad, 4), dtype=np.uint8) # 3
+        padded_image = np.concatenate((pad_column, padded_image, pad_column), axis=1)
     
+
         pil_im = Image.fromarray(padded_image)
         #       print(result_image.shape, pil_im.shape)
         no_bg_image = Image.new("RGBA", pil_im.size, (0,0,0,0))
@@ -81,12 +76,9 @@ class ClothPreprocessor:
         no_bg_image.save(output_path)
 
 
-
-
-
-if __name__ == '__main__':
-    cp = ClothPreprocessor()
-    # cp.remove_background('/usr/src/app/data/example/t_shirt.png',
-    #    '/usr/src/app/volume/data/no_background/t_shirt.png'
-    #    )
-    cp.crop_and_pad('/usr/src/app/volume/data/no_background/t_shirt.png', "/usr/src/app/volume/data/no_background/t_shirt_rc.png")
+# if __name__ == '__main__':
+#     cp = ClothPreprocessor()
+#     cp.remove_background('/usr/src/app/data/example/t_shirt.png',
+#        '/usr/src/app/volume/data/no_background/t_shirt.png'
+#        )
+#     cp.crop_and_pad('/usr/src/app/volume/data/no_background/t_shirt.png', "/usr/src/app/volume/data/no_background/t_shirt_rc.png")

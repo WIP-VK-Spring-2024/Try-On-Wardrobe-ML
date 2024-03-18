@@ -37,13 +37,13 @@ def resize_with_pad(im, target_width, target_height):
 
     image_resize = cv2.resize(im, (resize_width, resize_height), interpolation = cv2.INTER_AREA)
 
-    top_pad = int(max(0,(target_height-resize_height))/2) # its pad from top
-    bottom_pad = round(max(0,(target_height-resize_height))/2) # if need pad = 3. It will be int(1.5) + round(1.5) = 3
+    top_pad = int(max(0,(target_height-resize_height)+0.001)/2) # its pad from top
+    bottom_pad = round(max(0,(target_height-resize_height)+0.001)/2) # if need pad = 3. It will be int(1.5) + round(1.5) = 3
 
-    left_pad = int(max(0,(target_width-resize_width))/2) # its pad from left side
-    right_pad = round(max(0,(target_width-resize_width))/2) # if need pad = 3. It will be int(1.5) + round(1.5) = 3
+    left_pad = int(max(0,(target_width-resize_width)+0.001)/2) # its pad from left side
+    right_pad = round(max(0,(target_width-resize_width)+0.001)/2) # if need pad = 3. It will be int(1.5) + round(1.5) = 3
 
-    padded_image = cv2.copyMakeBorder(image_resize, top_pad, bottom_pad, left_pad, right_pad, cv2.BORDER_CONSTANT, value=(255,255,255))
+    padded_image = cv2.copyMakeBorder(image_resize, top_pad, bottom_pad, left_pad, right_pad, cv2.BORDER_CONSTANT, value=(0,0,0))
  #   padded_image = cv2.cvtColor(padded_image, cv2.COLOR_BGR2RGB)
     return padded_image
 
