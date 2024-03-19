@@ -12,6 +12,8 @@ fastapi = "^0.110.0"
 uvicorn = "^0.28.0"
 requests = "^2.31.0"
 python-multipart = "^0.0.9"
+pydantic = {version = "^1.10.13", extras = ["dotenv"]}
+aio-pika = "^9.1.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.3.2"

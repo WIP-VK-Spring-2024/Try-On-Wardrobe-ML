@@ -3,18 +3,52 @@ version: "3.8"
 services:
 
   api:
- 
+    container_name: ${API__INSTANCE_APP_NAME}
     build:
       context: .
       dockerfile: docker/api/Dockerfile
 
     volumes:
-      - ./volume/data:/usr/src/app/volume
+      - ${DATA_VOLUME}:/usr/src/app/volume
  
     ports:
-      - 7329:8000
+      - 127.0.0.1:8000:8000
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
+
+  model:
+    container_name: wardrobe-model
+    
+    restart: unless-stopped
+
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile
+
+    env_file:
+      - .env
+
+    depends_on:
+      - rabbitmq
+
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
+
+    command: ["poetry", "run", "python3", "-m", "app.pkg.workers.model.main"]
+
+  rabbitmq:
+    container_name: wardrobe-rabbitmq
+    image: rabbitmq:3.9.27-management
+    environment:
+      - RABBITMQ_DEFAULT_PASS=${RESOURCES__RABBITMQ__PASSWORD}
+      - RABBITMQ_DEFAULT_USER=${RESOURCES__RABBITMQ__USER}
+    env_file:
+      - .env
+    volumes:
+      - ${RESOURCES_RABBIT_DATA_VOLUME}:/var/lib/rabbitmq
+    ports:
+      - 127.0.0.1:${RESOURCES__RABBITMQ__PORT}:5672
+      - 127.0.0.1:15672:15672
 
 networks:
   default:
