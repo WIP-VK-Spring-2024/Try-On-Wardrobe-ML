@@ -1,11 +1,9 @@
 from fastapi import File, UploadFile, status, Depends, APIRouter
 from pydantic import UUID4
-from app.pkg.logger import get_logger
 from app.pkg.settings import settings
 from app.pkg.models import ResponseMessage
 from app.internal.services.model import ModelService
 
-logger = get_logger(__name__)
 
 model_router = APIRouter(
     prefix="/data",

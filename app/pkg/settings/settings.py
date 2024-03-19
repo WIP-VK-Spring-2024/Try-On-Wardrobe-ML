@@ -146,6 +146,16 @@ class Logging(_Settings):
         if not v.exists():
             v.mkdir(exist_ok=True, parents=True)
         return v
+    
+class AmazonS3(_Settings):
+    """Logging settings."""
+
+    #: StrictStr: Access key id
+    ACCESS_KEY_ID: SecretStr = "secret-key-id"
+    SECRET_ACCESS_KEY: SecretStr = "secret-access-key"
+    REGION_NAME: str = "region"
+
+    BUCKET_NAME: str = "bucket"
 
 class Settings(_Settings):
     """APP settings."""
@@ -157,6 +167,8 @@ class Settings(_Settings):
     CLIENTS: Clients
 
     LOGGER: Logging
+
+    AWS: AmazonS3
 
     API_FILESYSTEM_FOLDER: pathlib.Path = pathlib.Path("./volume/data")
 
