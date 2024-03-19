@@ -15,11 +15,11 @@ logger = get_logger(__name__)
 class AmazonS3Service:
 
     def __init__(self) -> None:
-        s3 = boto3.client(
-            "s3",
-            aws_access_key_id=settings.AWS.ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS.SECRET_ACCESS_KEY,
-            region_name=settings.AWS.REGION_NAME
+        self.s3 = boto3.client(
+            service_name="s3",
+            aws_access_key_id=settings.AWS.ACCESS_KEY_ID.get_secret_value(),
+            aws_secret_access_key=settings.AWS.SECRET_ACCESS_KEY.get_secret_value(),
+            endpoint_url=settings.AWS.ENDPOINT_URL,
         )
         self.s3_bucket_name = settings.AWS.BUCKET_NAME
 

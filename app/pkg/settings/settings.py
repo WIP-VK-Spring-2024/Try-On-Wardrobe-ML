@@ -153,7 +153,7 @@ class AmazonS3(_Settings):
     #: StrictStr: Access key id
     ACCESS_KEY_ID: SecretStr = "secret-key-id"
     SECRET_ACCESS_KEY: SecretStr = "secret-access-key"
-    REGION_NAME: str = "region"
+    ENDPOINT_URL: str = "https://hb.ru-msk.vkcs.cloud"
 
     BUCKET_NAME: str = "bucket"
 
