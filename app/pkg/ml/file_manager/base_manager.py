@@ -24,8 +24,3 @@ class BaseFileManager:
         """
         pass
 
-    def load_image(self, fileobj):
-        """
-        Get image variable from fileobj
-        """
-        # TODO: release func

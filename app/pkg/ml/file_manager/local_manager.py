@@ -21,17 +21,17 @@ class LocalFileManager(BaseFileManager):
         path - path to save
         """
         if file_type == FILE_TYPES.image:
-            cv2.imwrite(path, file)
+            cv2.imwrite(path, variable)
 
         elif file_type == FILE_TYPES.json:
             # saving json files, for example keypoints
             with open(path, 'w') as fin:
-                fin.write(json.dumps(file))
+                fin.write(json.dumps(variable))
 
         elif file_type == FILE_TYPES.npz:
             # saving exra data for 
             with open(path, "wb") as hFile:
-                torch.save(file, hFile)
+                torch.save(variable, hFile)
 
         else:
             raise TypeError("Unknown file type")

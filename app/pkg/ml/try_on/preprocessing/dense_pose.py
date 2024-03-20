@@ -21,6 +21,7 @@ from densepose.vis.extractor import (
     DensePoseResultExtractor,
     create_extractor,
 )
+
 class DensePoseEstimation:
 
     def __init__(self):
