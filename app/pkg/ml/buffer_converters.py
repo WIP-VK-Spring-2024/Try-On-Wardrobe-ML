@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from PIL import Image
 
+
 class BufferConverter:
 
     def __init__(self):
@@ -52,7 +53,7 @@ class BufferConverter:
 
     def buffer_to_image(self, buffer: io.BytesIO):
         """
-
+        Returns image_array - sckit image format np.array: rgb with (h,w,3) shape
         """
         pil_image = Image.open(buffer)
         return np.array(pil_image)
@@ -60,7 +61,7 @@ class BufferConverter:
 
     def image_to_buffer(self, image_array):
         """
-        image_array - skit image format np.array: rgb with (h,w,3) shape
+        image_array - sckit image format np.array: rgb with (h,w,3) shape
         """
 
         image = Image.fromarray(image_array)
