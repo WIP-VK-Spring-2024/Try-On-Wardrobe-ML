@@ -24,7 +24,9 @@ class ClothPreprocessor:
         keypoint_output_path - path to json (to save)
         output_path - path to img (to save)
         """
-        image = io.imread(input_path)
+        image = np.array(Image.open(input_path).convert('RGB')) # io.imread 
+        # convert('RGB') is for images with h,w,4 shape
+        
         orig_im_size = image.shape[0:2]
 
         if image is None:
