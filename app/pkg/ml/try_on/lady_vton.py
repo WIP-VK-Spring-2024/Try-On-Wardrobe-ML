@@ -14,12 +14,12 @@ from diffusers.utils.import_utils import is_xformers_available
 from tqdm import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModelWithProjection, AutoProcessor
 
-from ladi_vton.src.dataset.dresscode import DressCodeDataset
-from ladi_vton.src.dataset.vitonhd import VitonHDDataset
-from ladi_vton.src.models.AutoencoderKL import AutoencoderKL
-from ladi_vton.src.utils.encode_text_word_embedding import encode_text_word_embedding
-from ladi_vton.src.utils.set_seeds import set_seed
-from ladi_vton.src.vto_pipelines.tryon_pipe import StableDiffusionTryOnePipeline
+from app.pkg.ml.try_on.ladi_vton.src.dataset.dresscode import DressCodeDataset
+from app.pkg.ml.try_on.ladi_vton.src.dataset.vitonhd import VitonHDDataset
+from app.pkg.ml.try_on.ladi_vton.src.models.AutoencoderKL import AutoencoderKL
+from app.pkg.ml.try_on.ladi_vton.src.utils.encode_text_word_embedding import encode_text_word_embedding
+from app.pkg.ml.try_on.ladi_vton.src.utils.set_seeds import set_seed
+from app.pkg.ml.try_on.ladi_vton.src.vto_pipelines.tryon_pipe import StableDiffusionTryOnePipeline
 
 #PROJECT_ROOT = Path(__file__).absolute().parents[1].absolute()
 torch.hub.set_dir('/usr/src/app/app/pkg/ml/weights')
@@ -100,72 +100,72 @@ def main():
     # Load scheduler, tokenizer and models.
     default_path = "stabilityai/stable-diffusion-2-inpainting"
     # Load scheduler, tokenizer and models.
-    val_scheduler = DDIMScheduler.from_pretrained(default_path, subfolder="scheduler")
-    val_scheduler.set_timesteps(50, device=device)
+    # val_scheduler = DDIMScheduler.from_pretrained(default_path, subfolder="scheduler")
+    # val_scheduler.set_timesteps(50, device=device)
 
-    text_encoder = CLIPTextModel.from_pretrained(default_path, subfolder="text_encoder")
-    vae = AutoencoderKL.from_pretrained(default_path, subfolder="vae")
-    vision_encoder = CLIPVisionModelWithProjection.from_pretrained("laion/CLIP-ViT-H-14-laion2B-s32B-b79K")
-    processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-H-14-laion2B-s32B-b79K")
-    tokenizer = CLIPTokenizer.from_pretrained(default_path, subfolder="tokenizer")
+    # text_encoder = CLIPTextModel.from_pretrained(default_path, subfolder="text_encoder")
+    # vae = AutoencoderKL.from_pretrained(default_path, subfolder="vae")
+    # vision_encoder = CLIPVisionModelWithProjection.from_pretrained("laion/CLIP-ViT-H-14-laion2B-s32B-b79K")
+    # processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-H-14-laion2B-s32B-b79K")
+    # tokenizer = CLIPTokenizer.from_pretrained(default_path, subfolder="tokenizer")
 
-    text_encoder.to(device, dtype=weight_dtype)
-    vae.to(device, dtype=weight_dtype)
-    vision_encoder.to(device, dtype=weight_dtype)
+    # text_encoder.to(device, dtype=weight_dtype)
+    # vae.to(device, dtype=weight_dtype)
+    # vision_encoder.to(device, dtype=weight_dtype)
 
-    dataset = 'dresscode'
-    # Load the trained models from the hub
-    unet = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='extended_unet', dataset=dataset)
-    emasc = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='emasc', dataset=dataset)
-    inversion_adapter = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='inversion_adapter', dataset=dataset)
-    tps, refinement = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='warping_module', dataset=dataset)
+    # dataset = 'dresscode'
+    # # Load the trained models from the hub
+    # unet = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='extended_unet', dataset=dataset)
+    # emasc = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='emasc', dataset=dataset)
+    # inversion_adapter = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='inversion_adapter', dataset=dataset)
+    # tps, refinement = torch.hub.load(repo_or_dir='miccunifi/ladi-vton', source='github', model='warping_module', dataset=dataset)
     
-    unet.to(device, dtype=weight_dtype)
-    emasc.to(device, dtype=weight_dtype)
-    inversion_adapter.to(device, dtype=weight_dtype)
-    tps.to(device, dtype=weight_dtype)
-    refinement.to(device, dtype=weight_dtype)
+    # unet.to(device, dtype=weight_dtype)
+    # emasc.to(device, dtype=weight_dtype)
+    # inversion_adapter.to(device, dtype=weight_dtype)
+    # tps.to(device, dtype=weight_dtype)
+    # refinement.to(device, dtype=weight_dtype)
 
-    int_layers = [1, 2, 3, 4, 5]
+    # int_layers = [1, 2, 3, 4, 5]
 
 
-    # Set to eval mode
-    text_encoder.eval()
-    vae.eval()
-    emasc.eval()
-    inversion_adapter.eval()
-    unet.eval()
-    tps.eval()
-    refinement.eval()
-    vision_encoder.eval()
+    # # Set to eval mode
+    # text_encoder.eval()
+    # vae.eval()
+    # emasc.eval()
+    # inversion_adapter.eval()
+    # unet.eval()
+    # tps.eval()
+    # refinement.eval()
+    # vision_encoder.eval()
 
-    # Create the pipeline
-    val_pipe = StableDiffusionTryOnePipeline(
-        text_encoder=text_encoder,
-        vae=vae,
-        tokenizer=tokenizer,
-        unet=unet,
-        scheduler=val_scheduler,
-        emasc=emasc,
-        emasc_int_layers=int_layers,
-    ).to(device)
+    # # Create the pipeline
+    # val_pipe = StableDiffusionTryOnePipeline(
+    #     text_encoder=text_encoder,
+    #     vae=vae,
+    #     tokenizer=tokenizer,
+    #     unet=unet,
+    #     scheduler=val_scheduler,
+    #     emasc=emasc,
+    #     emasc_int_layers=int_layers,
+    # ).to(device)
 
     # Prepare the dataloader and create the output directory
     #test_dataloader = accelerator.prepare(test_dataloader)
     #save_dir = os.path.join(args.output_dir, args.test_order)
     #os.makedirs(save_dir, exist_ok=True)
-    generator = torch.Generator(device).manual_seed()
+    # generator = torch.Generator(device).manual_seed()
 
     # # Generate the images
-    # for idx, batch in enumerate(tqdm(test_dataloader)):
-    #     model_img = batch.get("image").to(weight_dtype)
-    #     mask_img = batch.get("inpaint_mask").to(weight_dtype)
-    #     if mask_img is not None:
-    #         mask_img = mask_img.to(weight_dtype)
-    #     pose_map = batch.get("pose_map").to(weight_dtype)
-    #     category = batch.get("category")
-    #     cloth = batch.get("cloth").to(weight_dtype)
-    #     im_mask = batch.get('im_mask').to(weight_dtype)
+    for idx, batch in enumerate(tqdm(test_dataloader)):
+        model_img = batch.get("image").to(weight_dtype)
+        mask_img = batch.get("inpaint_mask").to(weight_dtype)
+        if mask_img is not None:
+            mask_img = mask_img.to(weight_dtype)
+        pose_map = batch.get("pose_map").to(weight_dtype)
+        category = batch.get("category")
+        cloth = batch.get("cloth").to(weight_dtype)
+        im_mask = batch.get('im_mask').to(weight_dtype)
 
     #     # Generate the warped cloth
     #     # For sake of performance, the TPS parameters are predicted on a low resolution image
