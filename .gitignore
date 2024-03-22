@@ -1,6 +1,7 @@
 ### ML ignore
 app/pkg/ml/weights
 app/pkg/ml/try_on/preprocessing/openpose/images
+try_on_example.ipynb
 # app/pkg/ml/try_on/preprocessing/detectron/images
 
 
