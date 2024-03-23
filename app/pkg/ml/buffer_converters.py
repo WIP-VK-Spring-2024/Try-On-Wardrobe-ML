@@ -6,7 +6,7 @@ import torch
 from PIL import Image
 
 
-class BufferConverter:
+class BytesConverter:
 
     def __init__(self):
         pass
@@ -28,12 +28,12 @@ class BufferConverter:
         arr = np.load(buffer)
         return arr
 
-    def json_to_buffer(self, json_dict):
+    def json_to_bytes(self, json_dict):
         return json.dumps(json_dict) # Тут может возникнуть проблема с взаимодействием с s3
 
-    def buffer_to_json(self, buffer: io.BytesIO):
+    def bytes_to_json(self, bytes: io.BytesIO):
         # Преобразуем JSON-строку обратно в словарь
-        return json.load(buffer)
+        return json.loads(bytes)
 
     def torch_to_buffer(self, tensor):
         buffer = io.BytesIO()
@@ -51,21 +51,18 @@ class BufferConverter:
         loaded_tensor = torch.load(buffer)
         return loaded_tensor
 
-    def buffer_to_image(self, buffer: io.BytesIO):
+    def bytes_to_image(self, buffer: io.BytesIO):
         """
-        Returns image_array - sckit image format np.array: rgb with (h,w,3) shape
+        Returns PIL image 
         """
         pil_image = Image.open(buffer)
-        return np.array(pil_image)
+        return pil_image
 
 
-    def image_to_buffer(self, image_array):
+    def image_to_bytes(self, image):
         """
-        image_array - sckit image format np.array: rgb with (h,w,3) shape
+        image - PIL Image
         """
-
-        image = Image.fromarray(image_array)
-
         # Создаем буфер памяти
         buffer = io.BytesIO()
 
@@ -73,6 +70,7 @@ class BufferConverter:
         image.save(buffer, format='PNG')
 
         # Получаем содержимое буфера в виде байтов
-        buffer.seek(0)
-        image_data = buffer.read()
-        return image_data
+        return buffer
+        # buffer.seek(0)
+        # image_data = buffer.read()
+        # return image_data

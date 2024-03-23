@@ -12,30 +12,27 @@ class ClothPreprocessor:
     def __init__(self):
         self.net = BriaRMBG.from_pretrained("briaai/RMBG-1.4")
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.net.to(self.device)
 
         # prepare input
         self.model_input_size = [1024,1024]
     
-    def remove_background(self, input_path,
-                          output_path,
-                          background_path=None,
-                          background_color=None):
+    def remove_background(self, image:Image,
+                          save_mask=False,
+                          )->dict:
         """
-        input_path - path to resized image (to load)
-        keypoint_output_path - path to json (to save)
-        output_path - path to img (to save)
-        background_path - path to save cloth mask
+        image - pil.image with cloth (to load)
+        save_mask - is need to save cloth mask.
+
+        Returns {"cloth_no_background":no_bg_image,
+                 "cloth_mask": pil_im}
         """
-        image = np.array(Image.open(input_path).convert('RGB')) # io.imread 
+        image = np.array(image.convert('RGB')) 
         # convert('RGB') is for images with h,w,4 shape
         
         orig_im_size = image.shape[0:2]
 
-        if image is None:
-            raise Exception(f"Image {input_path} is not found for pose estimation")
-        
         prep_image = preprocess_image(image, self.model_input_size)
 
         with torch.no_grad(): 
@@ -45,35 +42,43 @@ class ClothPreprocessor:
             result_image = postprocess_image(result[0][0], orig_im_size)
             # clear memory
             del result        
-        # selecting images to crop only cloth
-        
+
         pil_im = Image.fromarray(result_image[:,:])
-#        print(result_image.shape, pil_im.shape)
-        if background_color:
-            no_bg_image = Image.new("RGB", pil_im.size, background_color)
+
+        # if background_color:
+        #     no_bg_image = Image.new("RGB", pil_im.size, background_color)
             
-        else:
-            no_bg_image = Image.new("RGBA", pil_im.size, (0, 0 ,0 ,0))
+        
+        no_bg_image = Image.new("RGBA", pil_im.size, (0, 0 ,0 ,0))
 
         orig_image = Image.fromarray(image[:,:,:])
 
         no_bg_image.paste(orig_image, mask=pil_im)
-        no_bg_image.save(output_path)
-        if background_path:
-            pil_im.save(background_path)
-        
-    def replace_background(self, im_path, mask_path, save_path,
-                           color=(255,255,255)):
-        image = Image.open(im_path).convert('RGB')
-        mask = Image.open(mask_path)
+        result = {"cloth_no_background":no_bg_image}
+        #no_bg_image.save(output_path)
+        if save_mask:
+            result["cloth_mask"] = pil_im
+        return result
 
+    def replace_background(self, image, mask,
+                           color=(255,255,255)):
+        """
+        image - pil image with cloth
+        mask - pil image with mask cloth
+        """
+        image = image.convert('RGB')
+        
         no_bg_image = Image.new("RGB", mask.size, color)
         no_bg_image.paste(image, mask=mask)
-        no_bg_image.save(save_path)
+        #no_bg_image.save(save_path)
+        return no_bg_image
 
 
-    def crop_and_pad(self, input_path, output_path, pad=10):
-        image = np.array(Image.open(input_path))#io.imread(input_path)
+    def crop_and_pad(self, image, pad=10):
+        """
+        image - pil image with cloth
+        """ 
+        image = np.array(image)#io.imread(input_path)
         image_last_dim = image.shape[2] 
         mask = image.sum(axis=2)>100 
 
@@ -92,24 +97,27 @@ class ClothPreprocessor:
     
 
         pil_im = Image.fromarray(padded_image)
-        #       print(result_image.shape, pil_im.shape)
         no_bg_image = Image.new("RGBA", pil_im.size, (0,0,0,0))
 
-        # if image_last_dim == 4:
-
-        # elif image_last_dim == 3:
-        #     no_bg_image = Image.new("RGB", pil_im.size, (0,0,0))
-        # else:
-        #     raise TypeError("Caught unknown shape image")
         orig_image = Image.fromarray(padded_image)
-        # print(np.array(pil_im).shape, np.array(orig_image).shape)
-        # print(np.array(no_bg_image).shape)
         no_bg_image.paste(orig_image.convert("RGBA"), mask=pil_im.convert("RGBA"))
-        no_bg_image.save(output_path)
+        return no_bg_image
+
+    def __call__(self, cloth_im):
+        """
+        cloth_im - pil image of cloth
+        """
+        im_no_background = self.remove_background(cloth_im, save_mask=False)["cloth_no_background"]
+        crop_and_pad = self.crop_and_pad(im_no_background)
+        return crop_and_pad
+
 
 if __name__ == '__main__':
     cp = ClothPreprocessor()
-    cp.remove_background('/usr/src/app/data/example/t_shirt.png',
-       '/usr/src/app/volume/data/no_background/t_shirt.png'
-       )
-    cp.crop_and_pad('/usr/src/app/volume/data/no_background/t_shirt.png', "/usr/src/app/volume/data/no_background/t_shirt_rc.png")
+    orig_image = Image.open('/usr/src/app/data/example/t_shirt.png')
+
+    res = cp(orig_image)
+    res.save("/usr/src/app/volume/data/no_background/cloth_prepr_ex.png")
+    # im_no_background = cp.remove_background(orig_image)
+
+    # cp.crop_and_pad(im_no_background, "/usr/src/app/volume/data/no_background/t_shirt_rc.png")

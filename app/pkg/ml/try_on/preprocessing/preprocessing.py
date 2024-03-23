@@ -2,24 +2,28 @@ import cv2
 from PIL import Image
 import numpy as np
 
+
 class Resizer:
-    
+    """
+    Custom resizer. It stays original image w/h proportion.
+    And resize it to desired shape
+    """    
     def __init__(self):
         self.RESIZE_WIDTH = 384
         self.RESIZE_HEIGHT = 512
 
 
-    def __call__(self, input_path, output_path):
-        image = Image.open(input_path)# cv2.imread(input_path)
-        if image is None:
-            raise Exception(f"Image {input_path} is not found for resize operation")
+    def __call__(self, image:Image):
+        """
+        image - pil image for resize
+        """
  
         image = np.array(image)
         resized_image = resize_with_pad(image, self.RESIZE_WIDTH, self.RESIZE_HEIGHT)
 
         assert resized_image.shape[:2] == (self.RESIZE_HEIGHT, self.RESIZE_WIDTH )
         
-        Image.fromarray(resized_image).save(output_path)
+        return Image.fromarray(resized_image)
         #cv2.imwrite(output_path, resized_image)
 
 
