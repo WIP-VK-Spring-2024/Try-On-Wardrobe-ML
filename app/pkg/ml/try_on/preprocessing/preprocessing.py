@@ -1,4 +1,6 @@
 import cv2
+from PIL import Image
+import numpy as np
 
 class Resizer:
     
@@ -8,15 +10,17 @@ class Resizer:
 
 
     def __call__(self, input_path, output_path):
-        image = cv2.imread(input_path)
+        image = Image.open(input_path)# cv2.imread(input_path)
         if image is None:
             raise Exception(f"Image {input_path} is not found for resize operation")
  
+        image = np.array(image)
         resized_image = resize_with_pad(image, self.RESIZE_WIDTH, self.RESIZE_HEIGHT)
 
-        assert resized_image.shape == (self.RESIZE_HEIGHT, self.RESIZE_WIDTH, 3)
+        assert resized_image.shape[:2] == (self.RESIZE_HEIGHT, self.RESIZE_WIDTH )
         
-        cv2.imwrite(output_path, resized_image)
+        Image.fromarray(resized_image).save(output_path)
+        #cv2.imwrite(output_path, resized_image)
 
 
 def resize_with_pad(im, target_width, target_height):
