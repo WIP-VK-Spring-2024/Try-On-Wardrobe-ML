@@ -71,6 +71,8 @@ class LadyVtonInputPreprocessor:
 
 
     def __call__(self, input_data):
+        # TODO: Insert here clever resize
+        # because it won't work idealy
         input_data['image'] = self.preprocess_human_orig(input_data['image_human_orig'])
         input_data['cloth'] = self.preprocess_cloth(input_data['cloth'])
         self.preprocess_human_parsing(input_data)
@@ -94,7 +96,6 @@ class LadyVtonInputPreprocessor:
         """
         Releases human parsing and loading keypoints loading        
         """
-
         image = input_data["image"]
         cloth_type = input_data["category"]
 

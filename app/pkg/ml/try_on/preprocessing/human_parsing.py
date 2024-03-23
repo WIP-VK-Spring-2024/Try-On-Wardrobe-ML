@@ -18,81 +18,92 @@ class HumanParsing:
     def __init__(self):
         
         self.WEIGHTS_PATH = f"{settings.ML.WEIGHTS_PATH}/human_parsing.pth"
-        #self.body_estimation = Body(self.WEIGHTS_PATH)
-
-    def __call__(self, input_path, output_path,):
-        """
-        input_path - path to resized image (to load)
-        output_path - path to img (to save)
-        """
-        image = cv2.imread(input_path)
-        if image is None:
-            raise Exception(f"Image {input_path} is not found for pose estimation")
-        assert image.shape == (512, 384, 3)
-
-        num_classes = 18
-        input_size = [512, 512] # this will be made in pipeline. No need extra resize 
-        label = ['Background', 'Hat', 'Hair', 'Sunglasses', 'Upper-clothes', 'Skirt', 'Pants', 'Dress', 'Belt',
+  
+        self.num_classes = 18
+        self.input_size = [512, 512] # this will be made in pipeline. No need extra resize 
+        self.label = ['Background', 'Hat', 'Hair', 'Sunglasses', 'Upper-clothes', 'Skirt', 'Pants', 'Dress', 'Belt',
                   'Left-shoe', 'Right-shoe', 'Face', 'Left-leg', 'Right-leg', 'Left-arm', 'Right-arm', 'Bag', 'Scarf']
 
-        model = networks.init_model('resnet101', num_classes=num_classes, pretrained=None)
 
+
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.406, 0.456, 0.485], std=[0.225, 0.224, 0.229])
+        ])
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.setup()
+
+
+
+    def setup(self):
+        self.model = networks.init_model('resnet101', num_classes=self.num_classes, pretrained=None)
         state_dict = torch.load(self.WEIGHTS_PATH)['state_dict']
         new_state_dict = OrderedDict()
         for k, v in state_dict.items():
             name = k[7:]  # remove `module.`
             new_state_dict[name] = v
-        model.load_state_dict(new_state_dict)
-        model.cuda()
-        model.eval()
+        self.model.load_state_dict(new_state_dict)
+        self.model.to(device=self.device)
+        self.model.eval()
 
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.406, 0.456, 0.485], std=[0.225, 0.224, 0.229])
-        ])
-        dataset = SimpleImageDataset(fp=input_path, input_size=input_size, transform=transform)
+    def __call__(self, pil_image:Image,):
+        """
+        pil_image - pil image
+        """
+        image = np.array(pil_image)[:,:,::-1].copy()
+        #image = cv2.imread(input_path)
+        # if image is None:
+        #     raise Exception(f"Image {input_path} is not found for pose estimation")
+        assert image.shape == (512, 384, 3)
+
+        
+        dataset = SingleImageDataset(pil_image,
+                                     input_size=self.input_size,
+                                     transform=self.transform)
         dataloader = DataLoader(dataset)
 
         # if not os.path.exists(args.output_dir):
         #     os.makedirs(args.output_dir)
 
-        palette = get_palette(num_classes)
+        palette = get_palette(self.num_classes)
         with torch.no_grad():
             for idx, batch in enumerate(dataloader):
                 image, meta = batch
-                img_name = meta['name'][0]
+                # img_name = meta['name'][0]
                 c = meta['center'].numpy()[0]
                 s = meta['scale'].numpy()[0]
                 w = meta['width'].numpy()[0]
                 h = meta['height'].numpy()[0]
 
-                output = model(image.cuda())
-                upsample = torch.nn.Upsample(size=input_size, mode='bilinear', align_corners=True)
+                output = self.model(image.cuda())
+                upsample = torch.nn.Upsample(size=self.input_size, mode='bilinear', align_corners=True)
                 upsample_output = upsample(output[0][-1][0].unsqueeze(0))
                 upsample_output = upsample_output.squeeze()
                 upsample_output = upsample_output.permute(1, 2, 0)  # CHW -> HWC
 
-                logits_result = transform_logits(upsample_output.data.cpu().numpy(), c, s, w, h, input_size=input_size)
+                logits_result = transform_logits(upsample_output.data.cpu().numpy(),
+                                                 c, s, w, h,
+                                                 input_size=self.input_size)
                 parsing_result = np.argmax(logits_result, axis=2)
                 output_img = Image.fromarray(np.asarray(parsing_result, dtype=np.uint8))
                 output_img.putpalette(palette)
-                output_img.save(output_path)
+                return output_img
 
 
 
-
-class SimpleImageDataset:
-    def __init__(self, fp, input_size=[512, 512], transform=None):
-        self.fp = fp
+class SingleImageDataset:
+    def __init__(self, pil_image, input_size=[512, 512], transform=None):
+        self.image = np.array(pil_image)[:,:,::-1] 
+        
         self.input_size = input_size
         self.transform = transform
         self.aspect_ratio = input_size[1] * 1.0 / input_size[0]
         self.input_size = np.asarray(input_size)
 
-        self.file_list = [self.fp]
+#        self.file_list = [self.fp]
 
     def __len__(self):
-        return len(self.file_list)
+        return 1  # len(self.file_list)
 
     def _box2cs(self, box):
         x, y, w, h = box[:4]
@@ -110,8 +121,7 @@ class SimpleImageDataset:
         return center, scale
 
     def __getitem__(self, index):
-        img_path = self.fp
-        img = cv2.imread(img_path, cv2.IMREAD_COLOR)
+        img = self.image
         h, w, _ = img.shape
 
         # Get person center and scale
@@ -128,7 +138,7 @@ class SimpleImageDataset:
 
         input = self.transform(input)
         meta = {
-            'name': self.fp,
+           # 'name': self.fp,
             'center': person_center,
             'height': h,
             'width': w,

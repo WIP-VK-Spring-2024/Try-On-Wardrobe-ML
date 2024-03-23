@@ -115,10 +115,6 @@ class LadyVton:
 
 
     def forward(self, input_data, save_path):
-        """
-        
-        """
-
         input_data = self.data_prepr.preprocess_input(input_data)
     
         model_img = input_data["image"].to(self.weight_dtype)
