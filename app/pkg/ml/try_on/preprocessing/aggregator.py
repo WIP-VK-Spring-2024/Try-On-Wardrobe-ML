@@ -25,7 +25,7 @@ class ClothProcessor(BaseProcessor):
         super().__init__()
         self.model_background = ClothPreprocessor()        
 
-    def consistent_forward(self, image_bytes:io.BytesIO)->Dict[str, io.BytesIO]:
+    def consistent_forward(self, image_bytes:io.BytesIO) -> Dict[str, io.BytesIO]:
         """
         Processes cloth image
         Removes background from input image buffer

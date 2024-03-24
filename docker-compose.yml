@@ -43,7 +43,7 @@ services:
     volumes:
       - ${DATA_VOLUME}:/usr/src/app/volume
 
-    command: ["python3", "-m", "app.pkg.workers.model.main"]
+    command: ["python3", "-m", "app.pkg.workers.try_on.main"]
 
   rabbitmq:
     container_name: wardrobe-rabbitmq

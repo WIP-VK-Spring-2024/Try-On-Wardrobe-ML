@@ -5,6 +5,7 @@ from app.internal.repository.rabbitmq.model_response import ModelRespRepository
 from app.internal.services import AmazonS3Service
 from app.pkg.models import TryOnResponseCmd
 from app.pkg.logger import get_logger
+from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 
 logger = get_logger(__name__)
 
@@ -20,10 +21,13 @@ class TryOnWorker:
         task_repository: ModelTaskRepository,
         resp_repository: ModelRespRepository,
         file_service: AmazonS3Service,
+        clothes_model: ClothProcessor,
     ):
         self.task_repository = task_repository
         self.resp_repository = resp_repository
         self.file_service = file_service
+    
+        self.clothes_model = clothes_model
 
     async def listen_queue(self):
         async for message in self.task_repository.read():
@@ -43,7 +47,9 @@ class TryOnWorker:
                 user_image_path,
                 clothes_image_path,
             )
-
+            
+            # Remove model background
+            cutted_clothes = self.clothes_model.consistent_forward(clothes_image)
             # try_on_file_path = await try_on_model.pipeline(try_on_file_path)
 
             res_file_name = message.clothes_id
@@ -52,7 +58,7 @@ class TryOnWorker:
             res_file_path = f"{res_file_dir}/{res_file_name}"
 
             self.file_service.upload(
-                file=clothes_image,
+                file=cutted_clothes["cloth"],
                 file_name=res_file_name,
                 folder=res_file_dir,
             )
