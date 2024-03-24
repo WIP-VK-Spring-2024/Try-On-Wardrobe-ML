@@ -1,3 +1,9 @@
+### ML ignore
+app/pkg/ml/weights
+app/pkg/ml/try_on/preprocessing/openpose/images
+try_on_example.ipynb
+*.zip
+
 ### VisualStudioCode template
 .vscode/*
 !.vscode/settings.json
@@ -122,6 +128,7 @@ DerivedData/
 pyvenv.cfg
 .venv
 pip-selfcheck.json
+virt-ward-env
 
 ### Emacs template
 # -*- mode: gitignore; -*-

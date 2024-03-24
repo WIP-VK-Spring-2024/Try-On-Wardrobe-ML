@@ -157,6 +157,14 @@ class AmazonS3(_Settings):
 
     BUCKET_NAME: str = "bucket"
 
+
+class ML(_Settings):
+    """ML settings."""
+
+    #: pathlib.Path: Path of models weights.
+    WEIGHTS_PATH: pathlib.Path = pathlib.Path("./app/pkg/ml/weights")
+
+
 class Settings(_Settings):
     """APP settings."""
 
@@ -169,6 +177,8 @@ class Settings(_Settings):
     LOGGER: Logging
 
     AWS: AmazonS3
+
+    ML: ML
 
     API_FILESYSTEM_FOLDER: pathlib.Path = pathlib.Path("./volume/data")
 

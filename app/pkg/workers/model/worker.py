@@ -1,4 +1,4 @@
-"""Model worker for read task queue."""
+"""Try on worker for read task queue."""
 
 from app.internal.repository.rabbitmq.model_task import ModelTaskRepository
 from app.internal.repository.rabbitmq.model_response import ModelRespRepository
@@ -8,7 +8,7 @@ from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
 
-class ModelWorker:
+class TryOnWorker:
     """Model worker for read task queue."""
 
     task_repository: ModelTaskRepository

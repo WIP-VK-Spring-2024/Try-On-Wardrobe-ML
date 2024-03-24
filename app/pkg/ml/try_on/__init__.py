@@ -1,0 +1,1 @@
+"""Module for virtual-try-on task"""
