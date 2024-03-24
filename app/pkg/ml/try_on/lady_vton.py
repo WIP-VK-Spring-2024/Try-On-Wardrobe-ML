@@ -27,8 +27,7 @@ class LadyVtonAggregator:
                 {
                 "image_human_orig":io.BytesIO,  # - image with human
                 "parsed_human":io.BytesIO,  # - image with parsed human 
-                "pose":io.BytesIO,  # - human pose
-                "keypoints":io.BytesIO # human keypoints json
+                "keypoints_json":io.BytesIO # human keypoints json
                 "cloth":io.BytesIO # cloth (without background) image bytes
                 "category":str, # one of ['dresses', 'upper_body','lower_body']
 

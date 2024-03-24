@@ -78,7 +78,7 @@ class HumanProcessor(BaseProcessor):
 
         parsed_human = self.model_human_parsing(human_resized)
         result["parse_orig"] = self.bytes_converter.image_to_bytes(parsed_human)
-
+        result["image"] = human_resized
         return result                
 
 
