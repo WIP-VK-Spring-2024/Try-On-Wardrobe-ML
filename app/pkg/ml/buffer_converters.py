@@ -69,8 +69,5 @@ class BytesConverter:
         # Сохраняем изображение в буфер в формате PNG
         image.save(buffer, format='PNG')
 
-        # Получаем содержимое буфера в виде байтов
+        buffer.seek(0)
         return buffer
-        # buffer.seek(0)
-        # image_data = buffer.read()
-        # return image_data

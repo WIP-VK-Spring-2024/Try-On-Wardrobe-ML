@@ -40,6 +40,8 @@ class TryOnWorker:
         self.try_on_model = try_on_model
 
     async def listen_queue(self):
+        logger.info("Starting listen queue...")
+
         async for message in self.task_repository.read():
             logger.info("New message [%s]", message)
 
@@ -62,10 +64,14 @@ class TryOnWorker:
             # Remove model background
             cutted_clothes = self.clothes_model.consistent_forward(clothes_image)
             logger.debug("End remove background, result: [%s].", cutted_clothes["cloth"])
+            
+            # Human processing
             processed_user = self.human_model.consistent_forward(user_image)
             logger.debug("End human processing, result: [%s]", processed_user["parse_orig"])
             
+            # Try on
             processed_user.update(cutted_clothes)
+            processed_user.update({"category": "upper_body"}) # TODO: add to enum
             try_on = self.try_on_model(processed_user)
             logger.debug("End try on, result: [%s]", try_on)
             # End model pipeline

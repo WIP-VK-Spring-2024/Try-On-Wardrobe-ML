@@ -45,9 +45,13 @@ Keys from dict above corresponds with output keys from 1) and 2) methods.
 P.S. It's recommended to init instances once in each class above. Initialization process can require more time, than image processing. 
 
 ## Launch dev container
- To launch container for developing ml models:  
+### Dockerfile  
 ```shell
 docker build -t dev_virt_ward:latest -f docker/model/Dockerfile_dev .
-docker run -id --rm --gpus all -v .:/usr/src/app/ -p 8843:22 --name virt_ward_dev dev_virt_ward:latest
+docker run -id --rm --gpus all -v .:/usr/src/app/ --name virt_ward_dev dev_virt_ward:latest
+```
+### Docker compose
+```
+docker compose -f docker-compose-dev.yml up -d --build --force-recreate
 ```
 

@@ -9,11 +9,15 @@ from app.internal.services import AmazonS3Service
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
 from app.pkg.ml.try_on.lady_vton import LadyVtonAggregator
+from app.pkg.logger import get_logger
+
+logger = get_logger(__name__)
 
 __all__ = ["start_worker"]
 
 
 def start_worker():
+    logger.info("Starting initialization...")
     task_repository = ModelTaskRepository()
     resp_repository = ModelRespRepository()
     file_service = AmazonS3Service()
@@ -30,6 +34,7 @@ def start_worker():
         human_model=human_model,
         try_on_model=try_on_model,
     )
+    logger.info("Successfuly initializated.")
     asyncio.run(model_worker.listen_queue())
 
 
