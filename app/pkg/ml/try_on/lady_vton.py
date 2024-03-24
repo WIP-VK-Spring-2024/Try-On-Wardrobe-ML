@@ -1,8 +1,9 @@
 from typing import Dict, Union
-from PIL import Image
-
 import json
 import io
+
+from PIL import Image
+import torch
 
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
 from app.pkg.ml.try_on.ladi_vton.lady_vton import LadyVton
@@ -14,7 +15,7 @@ class LadyVtonAggregator:
 
     def __init__(self):
         self.preprocessor = LadyVtonInputPreprocessor()
-        self.model = LadyVton()
+        self.model = LadyVton(num_inference_steps=20)
         self.bytes_converter = BytesConverter()
 
     def __call__(self, input_data: Dict[str, Union[io.BytesIO, str]]) -> Dict[str, io.BytesIO]:
@@ -54,6 +55,8 @@ class LadyVtonAggregator:
 
         # TODO: implement ladyvton model here
         result_image = Image.new("RGB", input_data["image_human_orig"].size, )
+        with torch.no_grad():
+            result_image = self.model.forward(input_data)
 
         return self.bytes_converter.image_to_bytes(result_image)
 
@@ -91,4 +94,5 @@ if __name__ == '__main__':
 
     result_bytes = lva(input_data)
     result_image = bytes_converter.bytes_to_image(result_bytes)
+    result_image.save("/usr/src/app/1.jpg")
    # result_image.save("/usr/src/app/1.jpg")

@@ -86,7 +86,7 @@ if __name__ == '__main__':
     bc = BytesConverter()
     
     cp = ClothProcessor()
-    cloth_path = "/usr/src/app/data/example/t_shirt.png"
+    cloth_path = "/usr/src/app/data/example/shirt-dc.png"
     cloth_im = Image.open(cloth_path)
     cloth_bytes = bc.image_to_bytes(cloth_im)
     out_cloth_result = cp.consistent_forward(cloth_bytes)
