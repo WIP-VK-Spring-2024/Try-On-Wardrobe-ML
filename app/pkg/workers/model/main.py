@@ -5,7 +5,7 @@ import asyncio
 from app.internal.repository.rabbitmq.model_task import ModelTaskRepository
 from app.internal.repository.rabbitmq.model_response import ModelRespRepository
 from app.pkg.workers.model.worker import ModelWorker
-from app.internal.services import FileService
+from app.internal.services import AmazonS3Service
 
 __all__ = ["start_worker"]
 
@@ -13,7 +13,7 @@ __all__ = ["start_worker"]
 def start_worker():
     task_repository = ModelTaskRepository()
     resp_repository = ModelRespRepository()
-    file_service = FileService()
+    file_service = AmazonS3Service()
 
     model_worker = ModelWorker(
         task_repository=task_repository,
