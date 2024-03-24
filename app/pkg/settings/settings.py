@@ -163,7 +163,7 @@ class ML(_Settings):
 
     #: pathlib.Path: Path of models weights.
     WEIGHTS_PATH: pathlib.Path = pathlib.Path("./app/pkg/ml/weights")
-
+    TRY_ON_DIR: str = "try_on"
 
 class Settings(_Settings):
     """APP settings."""

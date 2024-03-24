@@ -1,13 +1,16 @@
 """Try on worker for read task queue."""
 
+from typing import BinaryIO
+
 from app.internal.repository.rabbitmq.model_task import ModelTaskRepository
 from app.internal.repository.rabbitmq.model_response import ModelRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import TryOnResponseCmd
+from app.pkg.models import TryOnResponseCmd, TryOnTaskCmd, ImageCategory
 from app.pkg.logger import get_logger
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
 from app.pkg.ml.try_on.lady_vton import LadyVtonAggregator
+from app.pkg.settings import settings
 
 logger = get_logger(__name__)
 
@@ -56,30 +59,19 @@ class TryOnWorker:
             )
 
             logger.info(
-                "Started removing background clothes id: [%s]",
+                "Starting try on pipeline clothes id: [%s]",
                 message.clothes_id,
             )
-
             # Model pipeline           
-            # Remove model background
-            cutted_clothes = self.clothes_model.consistent_forward(clothes_image)
-            logger.debug("End remove background, result: [%s].", cutted_clothes["cloth"])
-            
-            # Human processing
-            processed_user = self.human_model.consistent_forward(user_image)
-            logger.debug("End human processing, result: [%s]", processed_user["parse_orig"])
-            
-            # Try on
-            processed_user.update(cutted_clothes)
-            processed_user.update({"category": "upper_body"}) # TODO: add to enum
-            try_on = self.try_on_model(processed_user)
-            logger.debug("End try on, result: [%s]", try_on)
-            # End model pipeline
+            try_on = self.pipeline(
+                category=message.category,
+                clothes_image=clothes_image,
+                user_image=user_image,
+            )
 
+            # Save result
             res_file_name = message.clothes_id
-            res_file_dir = f"try_on/{message.user_image_id}" # TODO: add path to settings
-
-            res_file_path = f"{res_file_dir}/{res_file_name}"
+            res_file_dir = f"{settings.ML.TRY_ON_DIR}/{message.user_image_id}"
 
             self.file_service.upload(
                 file=try_on,
@@ -88,12 +80,30 @@ class TryOnWorker:
             )
             
             logger.info(
-                "Try on result file name [%s], path [%s]",
+                "Try on result file name [%s], dir [%s]",
                 res_file_name,
-                res_file_path,
+                res_file_dir,
             )
             cmd = TryOnResponseCmd(
                 **message.dict(),
-                try_on_result_path=res_file_path,
+                try_on_result_id=res_file_name,
+                try_on_result_dir=res_file_dir,
             )
             await self.resp_repository.create(cmd=cmd)
+
+    def pipeline(self, category: ImageCategory, clothes_image: BinaryIO, user_image: BinaryIO) -> BinaryIO:
+        # Remove model background
+        cutted_clothes = self.clothes_model.consistent_forward(clothes_image)
+        logger.debug("End removed background, result: [%s].", cutted_clothes["cloth"])
+        
+        # Human processing
+        processed_user = self.human_model.consistent_forward(user_image)
+        logger.debug("End human processing, result: [%s]", processed_user["parse_orig"])
+        
+        # Try on
+        processed_user.update(cutted_clothes)
+        processed_user.update({"category": category.value})
+        try_on = self.try_on_model(processed_user)
+        logger.info("End try on, result: [%s]", try_on)
+
+        return try_on
