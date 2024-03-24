@@ -1,2 +1,2 @@
-from app.pkg.models.app.model import CreateTaskCmd, CreateTaskFileCmd, ResponseMessage, CreateRespFileCmd
-from app.pkg.models.app.image_type import ImageType
+from app.pkg.models.app.try_on import TryOnTaskCmd, TryOnResponseCmd
+from app.pkg.models.app.amazon_s3 import ResponseMessage

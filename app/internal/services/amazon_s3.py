@@ -1,5 +1,6 @@
 """Amazon S3 service."""
-from typing import BinaryIO
+import pathlib
+from typing import BinaryIO, Tuple
 from io import BytesIO
 
 import boto3
@@ -54,3 +55,23 @@ class AmazonS3Service:
             return buffer
         except ClientError as e:
             raise BaseAPIException(message=f"Failed to read file from S3: {e}")
+
+
+    def read_and_save(self, file_name: str, folder: str = None) -> Tuple[BinaryIO, str]:
+        default_path = pathlib.Path(
+            settings.API_FILESYSTEM_FOLDER,
+            folder,
+        ).absolute()
+        if not default_path.exists():
+            default_path.mkdir(exist_ok=True, parents=True)
+        
+        file_path = pathlib.Path(default_path, str(file_name)).absolute()
+
+        contents = self.read(file_name=file_name, folder=folder)
+
+        with open(file_path, 'wb') as f:
+            f.write(contents.read())
+
+        contents.seek(0)
+
+        return contents, str(file_path)
