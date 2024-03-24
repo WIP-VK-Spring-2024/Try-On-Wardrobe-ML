@@ -209,8 +209,8 @@ class LadyVton:
         #     else:
         #         gen_image.save(
         #             os.path.join(save_dir, cat, name), quality=95)
-        generated_images[0].save(save_path)
-
+        #generated_images[0].save(save_path)
+        return generated_images[0]
 
 if __name__ == '__main__':
 

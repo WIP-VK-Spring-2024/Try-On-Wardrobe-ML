@@ -318,12 +318,4 @@ if __name__ == '__main__':
     new_input_data = lv_prep(input_data)
     for i,j in new_input_data.items():
         print(i, type(j))
-    
-        # model_img = input_data["image"].to(self.weight_dtype)
-        # mask_img = input_data["inpaint_mask"].to(self.weight_dtype)
-        # if mask_img is not None:
-        #     mask_img = mask_img.to(self.weight_dtype)
-        # pose_map = input_data["pose_map"].to(self.weight_dtype)
-        # category = input_data["category"]
-        # cloth = input_data["cloth"].to(self.weight_dtype)
-        # im_mask = input_data['im_mask'].to(self.weight_dtype)
+

@@ -42,7 +42,7 @@ class ClothProcessor(BaseProcessor):
 
         result = {}
 
-        result["cloth_no_background"] = no_background_image_bytes        
+        result["cloth"] = no_background_image_bytes        
         
         return result
 
@@ -74,10 +74,10 @@ class HumanProcessor(BaseProcessor):
         result = {}
         pose_out, keypoints_json_dict = self.model_pose_estim(human_resized)
         result["pose"] = self.bytes_converter.image_to_bytes(pose_out)
-        result["keypoints"] = self.bytes_converter.json_to_bytes(keypoints_json_dict)
+        result["keypoints_json"] = self.bytes_converter.json_to_bytes(keypoints_json_dict)
 
         parsed_human = self.model_human_parsing(human_resized)
-        result["parsed_human"] = self.bytes_converter.image_to_bytes(parsed_human)
+        result["parse_orig"] = self.bytes_converter.image_to_bytes(parsed_human)
 
         return result                
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     cloth_im = Image.open(cloth_path)
     cloth_bytes = bc.image_to_bytes(cloth_im)
     out_cloth_result = cp.consistent_forward(cloth_bytes)
-    out_cloth_bytes = out_cloth_result["cloth_no_background"]
+    out_cloth_bytes = out_cloth_result["cloth"]
     out_cloth = bc.bytes_to_image(out_cloth_bytes)
     out_cloth.save("/usr/src/app/volume/data/no_background/cloth_prepr_ex.png")
 
@@ -105,13 +105,13 @@ if __name__ == '__main__':
     out_pose = bc.bytes_to_image(result_human["pose"])
     out_pose.save("/usr/src/app/volume/data/pose/pose_aggr.png")
 
-    out_keypoints_bytes = result_human["keypoints"]
+    out_keypoints_bytes = result_human["keypoints_json"]
     out_keypoints = bc.bytes_to_json(out_keypoints_bytes)
     import json
     with open("/usr/src/app/volume/data/pose/keypoints1.json", "w") as f: 
         json.dump(out_keypoints, f)
     # print(out_keypoints)
-    parsed_human = bc.bytes_to_image(result_human["parsed_human"])
+    parsed_human = bc.bytes_to_image(result_human["parse_orig"])
     parsed_human.save("/usr/src/app/volume/data/parsed/parsed_human_aggregator.png")
 
 

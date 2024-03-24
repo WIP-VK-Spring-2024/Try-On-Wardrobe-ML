@@ -60,7 +60,7 @@ class ClothPreprocessor:
             result["cloth_mask"] = pil_im
         return result
 
-    def replace_background(self, image, mask,
+    def replace_background_from_mask(self, image, mask,
                            color=(255,255,255)):
         """
         image - pil image with cloth
@@ -73,6 +73,19 @@ class ClothPreprocessor:
         #no_bg_image.save(save_path)
         return no_bg_image
 
+    @staticmethod
+    def replace_background_RGBA(rgba_image,
+                           color=(255,255,255)):
+        """
+        rgba_image - pil image with cloth in rgba format
+        color - color to replace background
+        """
+        # Create a new RGB image with the desired background color
+        rgb_image = Image.new("RGB", rgba_image.size, color)
+
+        # Paste the RGBA image onto the RGB image using the mask
+        rgb_image.paste(rgba_image, mask=rgba_image)
+        return rgb_image
 
     def crop_and_pad(self, image, pad=10):
         """
