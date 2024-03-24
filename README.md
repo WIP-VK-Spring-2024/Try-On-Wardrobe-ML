@@ -24,6 +24,6 @@ rm weights.zip
  To launch container for developing ml models:  
 ```shell
 docker build -t ml_virt_ward:latest -f docker/model/Dockerfile_dev .
-docker run -id -v .:/usr/src/app/ -p 8843:22 --name virt_ward_dev ml_virt_ward:latest
+docker run -id --rm --gpus all -v .:/usr/src/app/ -p 8843:22 --name virt_ward_dev ml_virt_ward:latest
 ```
 
