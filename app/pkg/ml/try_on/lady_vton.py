@@ -41,7 +41,7 @@ class LadyVtonAggregator:
         
         cloth_rgba = self.bytes_converter.bytes_to_image(
             input_data["cloth"])
-        input_data['cloth'] = ClothPreprocessor.replace_background_RGBA(cloth_rgba, color=255)
+        input_data['cloth'] = ClothPreprocessor.replace_background_RGBA(cloth_rgba, color=(255,255,255))
 
         input_data["parse_orig"] = self.bytes_converter.bytes_to_image(
             input_data["parse_orig"]
