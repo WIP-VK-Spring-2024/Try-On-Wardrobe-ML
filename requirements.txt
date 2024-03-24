@@ -10,6 +10,7 @@ accelerate
 xformers==0.0.22
 
 fastapi
+boto3==1.34.69
 uvicorn
 requests
 python-multipart
