@@ -1,5 +1,7 @@
-
 from typing import Dict, Union
+from PIL import Image
+
+import json
 import io
 
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
@@ -33,23 +35,17 @@ class LadyVtonAggregator:
         
         """
         
-        #TODO: Convert key to appropriate and its values. Keys must be same as in lady_vton_prepr. Values must be converted to pil
         input_data["image_human_orig"] = self.bytes_converter.bytes_to_image(
             input_data["image_human_orig"]) 
         
         cloth_rgba = self.bytes_converter.bytes_to_image(
             input_data["cloth"])
         input_data['cloth'] = ClothPreprocessor.replace_background_RGBA(cloth_rgba, color=255)
-        # TODO: convert into rgb with white background
 
         input_data["parse_orig"] = self.bytes_converter.bytes_to_image(
             input_data["parse_orig"]
         )
         
-        # input_data["keypoints_json"] = self.bytes_converter.bytes_to_image(
-        #     input_data["keypoints"]
-        # )
-
         input_data["keypoints_json"] = self.bytes_converter.bytes_to_json(
             input_data["keypoints_json"]
         )
