@@ -2,88 +2,62 @@ version: "3.8"
 
 services:
 
-  # api:
-  #   container_name: ${API__INSTANCE_APP_NAME}
-  #   build:
-  #     context: .
-  #     dockerfile: docker/api/Dockerfile
+  api:
+    container_name: ${API__INSTANCE_APP_NAME}
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
 
-  #   volumes:
-  #     - ${DATA_VOLUME}:/usr/src/app/volume
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
  
-  #   ports:
-  #     - 127.0.0.1:8000:8000
+    ports:
+      - 127.0.0.1:8000:8000
 
-  #   command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
+    command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
 
   model:
     container_name: wardrobe-model
     build:
       context: .
-      dockerfile: docker/model/Dockerfile_no_poetry
+      dockerfile: docker/model/Dockerfile
     deploy: # nvidia settings
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+           #   count: 1
               capabilities: [gpu]
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
 
-  #   env_file:
-  #     - .env
+    env_file:
+      - .env
 
-  #   depends_on:
-  #     - rabbitmq
+    depends_on:
+      - rabbitmq
 
     volumes:
-      # - ${DATA_VOLUME}:/usr/src/app/volume
-      - .:/usr/src/app/ # for dev
+      - ${DATA_VOLUME}:/usr/src/app/volume
 
-    command: ["tail", "-f", "/dev/null"] #["poetry", "run", "python3", "-m", "app.pkg.workers.model.main"]
+    command: ["python3", "-m", "app.pkg.workers.model.main"]
 
-  # rabbitmq:
-  #   container_name: wardrobe-rabbitmq
-  #   image: rabbitmq:3.9.27-management
-  #   environment:
-  #     - RABBITMQ_DEFAULT_PASS=${RESOURCES__RABBITMQ__PASSWORD}
-  #     - RABBITMQ_DEFAULT_USER=${RESOURCES__RABBITMQ__USER}
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - ${RESOURCES_RABBIT_DATA_VOLUME}:/var/lib/rabbitmq
-  #   ports:
-  #     - 127.0.0.1:${RESOURCES__RABBITMQ__PORT}:5672
-  #     - 127.0.0.1:15672:15672
+  rabbitmq:
+    container_name: wardrobe-rabbitmq
+    image: rabbitmq:3.9.27-management
+    environment:
+      - RABBITMQ_DEFAULT_PASS=${RESOURCES__RABBITMQ__PASSWORD}
+      - RABBITMQ_DEFAULT_USER=${RESOURCES__RABBITMQ__USER}
+    env_file:
+      - .env
+    volumes:
+      - ${RESOURCES_RABBIT_DATA_VOLUME}:/var/lib/rabbitmq
+    ports:
+      - 127.0.0.1:${RESOURCES__RABBITMQ__PORT}:5672
+      - 127.0.0.1:15672:15672
 
 networks:
   default:
     external: true
     name: shared-api-network
 
-  # # Второй сервис (контейнер): клиент.
-  # # Этот сервис назван 'client'.
-
-  # client:
-  #   # Здесь 'client/ соответствует пути к папке, которая содержит
-  #   # файл Dockerfile для клиентской части системы.
-
-  #   build: client/
-
-  #   # Команда, которую нужно запустить после создания образа.
-  #   # Следующая команда означает запуск "python ./client.py".
- 
-  #   command: python ./client.py
-
-  #   # Ключевое слово 'network_mode' используется для описания типа сети.
-  #   # Тут мы указываем то, что контейнер может обращаться к 'localhost' компьютера.
-
-  #   network_mode: host
-
-  #   # Ключевое слово 'depends_on' позволяет указывать, должен ли сервис,
-  #   # прежде чем запуститься, ждать, когда будут готовы к работе другие сервисы.
-  #   # Нам нужно, чтобы сервис 'client' дождался бы готовности к работе сервиса 'server'.
- 
-  #   depends_on:
-  #     - server

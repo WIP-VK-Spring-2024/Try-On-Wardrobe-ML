@@ -18,3 +18,12 @@ source .env
 unzip weights.zip -d $ML__WEIGHTS_PATH
 rm weights.zip
 ```
+
+
+## Launch dev container
+ To launch container for developing ml models:  
+```shell
+docker build -t ml_virt_ward:latest -f docker/model/Dockerfile_dev .
+docker run -id -v .:/usr/src/app/ -p 8843:22 --name virt_ward_dev ml_virt_ward:latest
+```
+
