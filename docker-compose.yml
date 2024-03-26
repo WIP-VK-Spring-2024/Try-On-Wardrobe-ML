@@ -16,26 +16,6 @@ services:
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
 
-  model:
-    container_name: wardrobe-model
-    
-    restart: unless-stopped
-
-    build:
-      context: .
-      dockerfile: docker/model/Dockerfile
-
-    env_file:
-      - .env
-
-    depends_on:
-      - rabbitmq
-
-    volumes:
-      - ${DATA_VOLUME}:/usr/src/app/volume
-
-    command: ["poetry", "run", "python3", "-m", "app.pkg.workers.model.main"]
-
   rabbitmq:
     container_name: wardrobe-rabbitmq
     image: rabbitmq:3.9.27-management
@@ -55,28 +35,3 @@ networks:
     external: true
     name: shared-api-network
 
-  # # Второй сервис (контейнер): клиент.
-  # # Этот сервис назван 'client'.
-
-  # client:
-  #   # Здесь 'client/ соответствует пути к папке, которая содержит
-  #   # файл Dockerfile для клиентской части системы.
-
-  #   build: client/
-
-  #   # Команда, которую нужно запустить после создания образа.
-  #   # Следующая команда означает запуск "python ./client.py".
- 
-  #   command: python ./client.py
-
-  #   # Ключевое слово 'network_mode' используется для описания типа сети.
-  #   # Тут мы указываем то, что контейнер может обращаться к 'localhost' компьютера.
-
-  #   network_mode: host
-
-  #   # Ключевое слово 'depends_on' позволяет указывать, должен ли сервис,
-  #   # прежде чем запуститься, ждать, когда будут готовы к работе другие сервисы.
-  #   # Нам нужно, чтобы сервис 'client' дождался бы готовности к работе сервиса 'server'.
- 
-  #   depends_on:
-  #     - server
