@@ -23,9 +23,6 @@ services:
     env_file:
       - .env
 
-    depends_on:
-      - rabbitmq
-
     volumes:
       - ${DATA_VOLUME}:/usr/src/app/volume
 

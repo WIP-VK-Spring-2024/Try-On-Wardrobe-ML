@@ -70,7 +70,7 @@ class TryOnWorker:
             )
 
             # Save result
-            res_file_name = message.clothes_id
+            res_file_name = f"{message.clothes_id}"
             res_file_dir = f"{settings.ML.TRY_ON_DIR}/{message.user_image_id}"
 
             self.file_service.upload(
@@ -105,7 +105,7 @@ class TryOnWorker:
         # Try on
         processed_user.update(
             {
-                "category": category.value,
+                "category": category,
                 "cloth": clothes_image,
             }
         )
