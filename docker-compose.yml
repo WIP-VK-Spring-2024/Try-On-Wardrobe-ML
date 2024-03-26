@@ -16,35 +16,6 @@ services:
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
 
-  model:
-    container_name: wardrobe-model
-    
-    restart: unless-stopped
-
-    build:
-      context: .
-      dockerfile: docker/model/Dockerfile
-    deploy: # nvidia settings
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-           #   count: 1
-              capabilities: [gpu]
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-
-    env_file:
-      - .env
-
-    depends_on:
-      - rabbitmq
-
-    volumes:
-      - ${DATA_VOLUME}:/usr/src/app/volume
-
-    command: ["python3", "-m", "app.pkg.workers.try_on.main"]
-
   rabbitmq:
     container_name: wardrobe-rabbitmq
     image: rabbitmq:3.9.27-management

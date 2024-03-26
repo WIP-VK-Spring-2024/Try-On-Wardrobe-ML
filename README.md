@@ -5,10 +5,18 @@
 
 Далее надо освободить порт 5432, используемый обычно Postgres, после чего запускаем контейнер:
 
+### FastAPI and RabbitMQ
 ```shell
 docker network create shared-api-network
 docker-compose up -d --build
 ```
+### All model runners for queing tasks
+```shell
+docker compose -f docker-compose-model.yml up -d --build --force-recreate
+```
+
+## ML usage
+> За неимением времени на разработку в проекте используется requirements.txt для запуска ML части. В планах его перенести в pyproject.toml.
 
 Чтобы ml заработал нужно скачать веса. Для этого скачиваем архив с весами (ссылку можно попросить у @KOTOBOPOT). Его содержимое распаковываем в папку ML__WEIGHTS_PATH (переменная в .env). Указанные операции можно сделать при помощи следующих команд:
 
@@ -18,9 +26,6 @@ wget /link/to/weights/archieve -O weights.zip \
 && unzip weights.zip -d $ML__WEIGHTS_PATH\
 && rm weights.zip
 ```
-
-## ML usage
-> За неимением времени на разработку в проекте используется requirements.txt для запуска ML части. В планах его перенести в pyproject.toml.
 
 Classes for working has folowing view:
 1) __Clothes Preprocessing__: app/pkg/ml/try_on/preprocessing/aggregator.py - class: ClothProcessor. method: consistent_forward(image_bytes)

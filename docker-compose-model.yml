@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+
+  cut-model:
+    container_name: cut-model
+    
+    restart: unless-stopped
+
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile
+    deploy: # nvidia settings
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+           #   count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+
+    env_file:
+      - .env
+
+    depends_on:
+      - rabbitmq
+
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
+
+    command: ["python3", "-m", "app.pkg.workers.cut.main"]
+
+  try-on-model:
+    container_name: try-on-model
+    
+    restart: unless-stopped
+
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile
+    deploy: # nvidia settings
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+           #   count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+
+    env_file:
+      - .env
+
+    depends_on:
+      - rabbitmq
+
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
+
+    command: ["python3", "-m", "app.pkg.workers.try_on.main"]
+
+networks:
+  default:
+    external: true
+    name: shared-api-network
+
