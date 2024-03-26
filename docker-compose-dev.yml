@@ -1,0 +1,65 @@
+version: "3.8"
+
+services:
+
+  api:
+    container_name: dev-${API__INSTANCE_APP_NAME}
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+
+    volumes:
+      - .:/usr/src/app/volume
+ 
+    ports:
+      - 0.0.0.0:8000:8000
+
+    command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
+
+  model:
+    container_name: dev-wardrobe-model
+    
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile_dev
+    deploy: # nvidia settings
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+           #   count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+
+    env_file:
+      - .env
+
+    depends_on:
+      - rabbitmq
+
+    volumes:
+      - .:/usr/src/app
+
+    # command: ["python3", "-m", "app.pkg.workers.try_on.main"]
+    command: ["tail", "-f", "/dev/null"] 
+  
+  rabbitmq:
+    container_name: wardrobe-rabbitmq
+    image: rabbitmq:3.9.27-management
+    environment:
+      - RABBITMQ_DEFAULT_PASS=${RESOURCES__RABBITMQ__PASSWORD}
+      - RABBITMQ_DEFAULT_USER=${RESOURCES__RABBITMQ__USER}
+    env_file:
+      - .env
+    volumes:
+      - ${RESOURCES_RABBIT_DATA_VOLUME}:/var/lib/rabbitmq
+    ports:
+      - 0.0.0.0:${RESOURCES__RABBITMQ__PORT}:5672
+      - 0.0.0.0:15672:15672
+
+networks:
+  default:
+    external: true
+    name: shared-api-network
+

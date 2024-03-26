@@ -1,11 +1,10 @@
 """Main module for start the application."""
-from fastapi import FastAPI
-from app.model import model_router
-
+from fastapi import Depends, FastAPI
+from app.internal.routes import __routes__
+from app.pkg.middlewares.x_auth_token import x_auth_token
 
 def create_app():
-    """All settings for the application must be here."""
-    app = FastAPI()
-    app.include_router(model_router, prefix="/data", tags=["data"])
-
+    """All settings for the application."""
+    app = FastAPI(dependencies=[Depends(x_auth_token)])
+    __routes__.register_routes(app=app)
     return app
