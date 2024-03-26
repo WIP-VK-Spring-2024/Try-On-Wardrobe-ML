@@ -1,12 +1,12 @@
-"""Repository for model task queue."""
+"""Repository for try on model task queue."""
 from typing import AsyncGenerator
 
 from app.internal.repository.rabbitmq.base_repository import BaseRepository
 from app.pkg.models import TryOnTaskCmd
 
 
-class ModelTaskRepository(BaseRepository):
-    """Repository for model task queue."""
+class TryOnTaskRepository(BaseRepository):
+    """Repository for try on model task queue."""
 
     QUEUE_NAME: str = "try_on"
 
