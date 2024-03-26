@@ -31,8 +31,8 @@ class TryOnWorker:
         resp_repository: TryOnRespRepository,
         file_service: AmazonS3Service,
         clothes_model: ClothProcessor,
-        human_model = HumanProcessor,
-        try_on_model = LadyVtonAggregator,
+        human_model: HumanProcessor,
+        try_on_model: LadyVtonAggregator,
     ):
         self.task_repository = task_repository
         self.resp_repository = resp_repository

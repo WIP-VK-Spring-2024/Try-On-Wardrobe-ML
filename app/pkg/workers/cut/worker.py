@@ -54,7 +54,7 @@ class CutWorker:
 
             # Save result
             res_file_name = message.clothes_id
-            res_file_dir = f"{settings.ML.CUT_DIR}/{message.user_image_id}"
+            res_file_dir = settings.ML.CUT_DIR
 
             self.file_service.upload(
                 file=cutted_clothes,
@@ -69,7 +69,6 @@ class CutWorker:
             )
             cmd = CutResponseCmd(
                 **message.dict(),
-                clothes_id=res_file_name,
                 result_dir=res_file_dir,
             )
             await self.resp_repository.create(cmd=cmd)
