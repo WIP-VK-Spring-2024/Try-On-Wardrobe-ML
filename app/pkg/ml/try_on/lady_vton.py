@@ -8,6 +8,7 @@ import torch
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
 from app.pkg.ml.try_on.ladi_vton.lady_vton import LadyVton
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
+from app.pkg.ml.try_on.postprocessing.fix_face import FaceFixer
 from app.pkg.ml.buffer_converters import BytesConverter
 
 
@@ -16,8 +17,10 @@ class LadyVtonAggregator:
     def __init__(self):
         self.preprocessor = LadyVtonInputPreprocessor()
         self.model = LadyVton(num_inference_steps=20)
+        self.face_fix_model = FaceFixer()
         self.bytes_converter = BytesConverter()
 
+    @torch.inference_mode()
     def __call__(self, input_data: Dict[str, Union[io.BytesIO, str]]) -> Dict[str, io.BytesIO]:
         """
         Starts try on process
@@ -52,46 +55,10 @@ class LadyVtonAggregator:
 
         self.preprocessor(input_data)
 
-        # TODO: implement ladyvton model here
-        result_image = Image.new("RGB", input_data["image_human_orig"].size, )
-        with torch.no_grad():
-            result_image = self.model.forward(input_data)
-
-        return self.bytes_converter.image_to_bytes(result_image)
-
-if __name__ == '__main__':
-
-    bytes_converter = BytesConverter()
-
-    from PIL import Image
-    import json
-
-    lva = LadyVtonAggregator()
-    input_data = {}
-
-    cloth_path = "/usr/src/app/volume/data/no_background/cloth_prepr_ex.png"
-    json_path = "/usr/src/app/volume/data/pose/keypoints1.json"
-    parsed_human_path = "/usr/src/app/volume/data/parsed/parsed_human_aggregator.png"
-    human_path = "/usr/src/app/data/example/human-dc.jpg"
-
-    input_data["cloth"] = bytes_converter.image_to_bytes(
-        Image.open(cloth_path))
-    
-    # a = ClothPreprocessor.replace_background_RGBA(Image.open(cloth_path), color=(255,255,255))
-    # a.save("/usr/src/app/1.jpg")
-
-    input_data["parse_orig"] = bytes_converter.image_to_bytes(
-        Image.open(parsed_human_path))
-    input_data["image_human_orig"] = bytes_converter.image_to_bytes(
-        Image.open(human_path))
-    
-    with open(json_path, 'r') as f:
-        json_keypoints = json.load(f)    
-        input_data["keypoints_json"] = bytes_converter.json_to_bytes(json_keypoints)
-    
-    input_data['category'] = 'upper_body'
-
-    result_bytes = lva(input_data)
-    result_image = bytes_converter.bytes_to_image(result_bytes)
-    result_image.save("/usr/src/app/1.jpg")
-   # result_image.save("/usr/src/app/1.jpg")
+        # result_image = Image.new("RGB", input_data["image_human_orig"].size, )
+        
+        result_image = self.model.forward(input_data)
+        fixed_face_image = self.face_fix_model.fix_face(
+            orig_image=input_data["image_human_orig"],
+            result_image=result_image)
+        return self.bytes_converter.image_to_bytes(fixed_face_image)

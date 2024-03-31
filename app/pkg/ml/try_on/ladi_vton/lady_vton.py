@@ -32,7 +32,9 @@ from app.pkg.settings import settings
 
 #PROJECT_ROOT = Path(__file__).absolute().parents[1].absolute()
 torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
-os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)# '/usr/src/app/app/pkg/ml/weights'
+os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)
+os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
+
 # Will error if the minimal version of diffusers is not installed. Remove at your own risks.
 check_min_version("0.10.0.dev0")
 

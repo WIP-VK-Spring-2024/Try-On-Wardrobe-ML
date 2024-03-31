@@ -1,3 +1,5 @@
+import os
+
 import cv2 
 import numpy as np
 from skimage import io
@@ -7,6 +9,11 @@ from PIL import Image
 from app.pkg.ml.try_on.preprocessing.RMBG.briarmbg import BriaRMBG
 from app.pkg.ml.try_on.preprocessing.RMBG.utilities import preprocess_image, postprocess_image
 
+from app.pkg.settings import settings
+
+torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
+os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)
+os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
 
 class ClothPreprocessor:
     def __init__(self):
