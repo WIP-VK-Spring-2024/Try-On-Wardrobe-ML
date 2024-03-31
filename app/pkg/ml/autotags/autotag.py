@@ -8,6 +8,8 @@ from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
 
+def max_normalize(probs):
+    return probs/probs.max().item()
 
 class AutoTagger:
     def __init__(self, device="cuda:0"):
@@ -16,7 +18,7 @@ class AutoTagger:
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self.device = device
         self.bytes_converter = BytesConverter()
-        self.soft_max_function = Softmax(dim=1)
+        self.normalize = max_normalize#Softmax(dim=1)
 
     def forward(self, input_data: Dict[str, Union[io.BytesIO, Dict[str, List[str]]]]) -> Dict[str, Dict[str, float]]:
         """
@@ -82,7 +84,7 @@ class AutoTagger:
 
             text_features = self.model.get_text_features(**text_inputs)
             logits = image_features @ text_features.T
-            probabilities = self.soft_max_function(logits)
+            probabilities = self.normalize(logits)
             probabilities = probabilities.flatten().tolist()
 
             for tag, prob in zip(text_tag_list, probabilities):
