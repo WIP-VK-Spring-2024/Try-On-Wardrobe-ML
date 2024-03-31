@@ -40,6 +40,7 @@ services:
 
     volumes:
       - .:/usr/src/app
+      - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
 
     # command: ["python3", "-m", "app.pkg.workers.try_on.main"]
     command: ["tail", "-f", "/dev/null"] 

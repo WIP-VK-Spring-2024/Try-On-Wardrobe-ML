@@ -25,6 +25,7 @@ services:
 
     volumes:
       - ${DATA_VOLUME}:/usr/src/app/volume
+      - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
 
     command: ["python3", "-m", "app.pkg.workers.cut.main"]
 
@@ -54,6 +55,7 @@ services:
 
     volumes:
       - ${DATA_VOLUME}:/usr/src/app/volume
+      - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
 
     command: ["python3", "-m", "app.pkg.workers.try_on.main"]
 
