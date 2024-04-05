@@ -12,6 +12,9 @@ from app.pkg.ml.try_on.postprocessing.fix_face import FaceFixer
 from app.pkg.ml.buffer_converters import BytesConverter
 from app.pkg.models.app.image_category import ImageCategory
 
+from app.pkg.logger import get_logger
+
+logger = get_logger(__name__)
 
 class LadyVtonAggregator:
 
@@ -63,38 +66,46 @@ class LadyVtonAggregator:
                 "parsed_human":io.BytesIO,  # - image with parsed human 
                 "keypoints_json":io.BytesIO # human keypoints json
                 }
+
             clothes - List[Dict[str, Union[io.BytesIO, ImageCategory]]] with format:
                 {
                 "cloth":io.BytesIO # cloth (without background) image bytes
                 "category":ImageCategory, # one of ['dresses', 'upper_body','lower_body']
                 }                        
         """
+        logger.info("Starting try on outfit")
+
+        # convert bytearray into pil image
         self.prepare_human(human)
-        for cloth in clothes:
-            self.prepare_cloth(cloth)
-                # result_image = self.model.forward(cloth)
-                # fixed_face_image = self.face_fix_model.fix_face(
-                #     orig_image=input_data["image_human_orig"],
-                #     result_image=result_image)
+        result_image = human["image_human_orig"]
 
         for cloth in clothes:
+            self.prepare_cloth(cloth)
+
+        # find a cloth with lower body
+        for cloth in clothes:
             if cloth["category"] == ImageCategory.LOWER_BODY:
-                pass
+                result_image = self.model.get_try_on(human, cloth)
+                human['image'] = result_image
+                # break ???
 
         for cloth in clothes:
             if cloth["category"] == ImageCategory.UPPER_BODY:
-                pass
+                result_image = self.model.get_try_on(human, cloth)
+                human['image'] = result_image
 
 
-        result_image = self.model.forward(input_data)
         fixed_face_image = self.face_fix_model.fix_face(
-            orig_image=input_data["image_human_orig"],
+            orig_image=human["image_human_orig"],
             result_image=result_image)
 
         return self.bytes_converter.image_to_bytes(fixed_face_image)
 
 
     def prepare_human(self, human):
+        """
+        Converts data types from byte array
+        """
         human["image_human_orig"] = self.bytes_converter.bytes_to_image(
         human["image_human_orig"])
 
@@ -108,6 +119,9 @@ class LadyVtonAggregator:
 
 
     def prepare_cloth(self, cloth):
+        """
+        Converts data types from byte array
+        """
         cloth_rgba = self.bytes_converter.bytes_to_image(
             cloth["cloth"])
         cloth['cloth'] = ClothPreprocessor.replace_background_RGBA(cloth_rgba,

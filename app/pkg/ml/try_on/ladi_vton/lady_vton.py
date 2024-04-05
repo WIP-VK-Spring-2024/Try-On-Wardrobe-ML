@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
 import torchvision
-from torchvision import transforms
+from torchvision import transforms as T
 
 
 from PIL import Image
@@ -19,6 +19,7 @@ from diffusers.utils import check_min_version
 from diffusers.utils.import_utils import is_xformers_available
 from tqdm import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModelWithProjection, AutoProcessor
+from torchvision.transforms import functional as tv_func
 
 from app.pkg.ml.try_on.ladi_vton.src.dataset.dresscode import DressCodeDataset
 from app.pkg.ml.try_on.ladi_vton.src.dataset.vitonhd import VitonHDDataset
@@ -116,36 +117,48 @@ class LadyVton(torch.nn.Module):
         # if error in generator initialization occures, replace self.device to "cuda"
         self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
+    def get_try_on(self, human: dict, cloth:dict):
+        input_data = {}
+        input_data.update(human)
+        input_data.update(cloth)
+        return self.forward(input_data=input_data
+                            single_cloth=True
+                            )
 
-    def forward(self, input_data):
+    def forward(self, input_data, single_cloth=True):
        # input_data = self.data_prepr.preprocess_input(input_data)
-    
-        model_img = input_data["image"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
-        mask_img = input_data["inpaint_mask"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
+        if single_cloth:
+            model_img = input_data["image"].to(device=self.device,
+                                               dtype=self.weight_dtype).unsqueeze(0)
+            mask_img = input_data["inpaint_mask"].to(device=self.device,
+                                                     dtype=self.weight_dtype).unsqueeze(0)
 
-        pose_map = input_data["pose_map"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
-        category = input_data["category"]
-        cloth = input_data["cloth"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
-        im_mask = input_data['im_mask'].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
+            pose_map = input_data["pose_map"].to(device=self.device,
+                                                 dtype=self.weight_dtype).unsqueeze(0)
+            category = input_data["category"]
+            cloth = input_data["cloth"].to(device=self.device,
+                                           dtype=self.weight_dtype).unsqueeze(0)
+            im_mask = input_data['im_mask'].to(device=self.device,
+                                               dtype=self.weight_dtype).unsqueeze(0)
 
-        low_cloth = torchvision.transforms.functional.resize(cloth, (256, 192),
-                                                             torchvision.transforms.InterpolationMode.BILINEAR,
-                                                             antialias=True)
-        low_im_mask = torchvision.transforms.functional.resize(im_mask, (256, 192),
-                                                               torchvision.transforms.InterpolationMode.BILINEAR,
-                                                               antialias=True)
-        low_pose_map = torchvision.transforms.functional.resize(pose_map, (256, 192),
-                                                                torchvision.transforms.InterpolationMode.BILINEAR,
-                                                                antialias=True)
+        low_cloth = tv_func.resize(cloth, (256, 192),
+                                   torchvision.transforms.InterpolationMode.BILINEAR,
+                                   antialias=True)
+        low_im_mask = tv_func.resize(im_mask, (256, 192),
+                                     torchvision.transforms.InterpolationMode.BILINEAR,
+                                     antialias=True)
+        low_pose_map = tv_func.resize(pose_map, (256, 192),
+                                      torchvision.transforms.InterpolationMode.BILINEAR,
+                                      antialias=True)
         # print(low_im_mask.shape, low_pose_map.shape, )
         agnostic = torch.cat([low_im_mask, low_pose_map], 1)
         low_grid, theta, rx, ry, cx, cy, rg, cg = self.tps(low_cloth, agnostic)
 
         # We upsample the grid to the original image size and warp the cloth using the predicted TPS parameters
-        highres_grid = torchvision.transforms.functional.resize(low_grid.permute(0, 3, 1, 2),
-                                                                size=(512, 384),
-                                                                interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
-                                                                antialias=True).permute(0, 2, 3, 1)
+        highres_grid = tv_func.resize(low_grid.permute(0, 3, 1, 2),
+                                      size=(512, 384),
+                                      interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+                                      antialias=True).permute(0, 2, 3, 1)
 
         warped_cloth = F.grid_sample(cloth.to(torch.float32), highres_grid.to(torch.float32), padding_mode='border')
 
@@ -156,7 +169,7 @@ class LadyVton(torch.nn.Module):
         warped_cloth = warped_cloth.to(self.weight_dtype)
 
         # Get the visual features of the in-shop cloths
-        input_image = torchvision.transforms.functional.resize((cloth + 1) / 2, (224, 224),
+        input_image = tv_func.resize((cloth + 1) / 2, (224, 224),
                                                                antialias=True).clamp(0, 1)
         processed_images = self.processor(images=input_image, return_tensors="pt")
         clip_cloth_features = self.vision_encoder(
