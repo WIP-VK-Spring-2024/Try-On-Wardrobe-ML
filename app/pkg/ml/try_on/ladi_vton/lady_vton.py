@@ -54,8 +54,8 @@ class LadyVton(torch.nn.Module):
         self.pretrained_model_name_or_path = "stabilityai/stable-diffusion-2-inpainting"
         self.enable_xformers_memory_efficient_attention = True
         self.seed = 42
-        self.num_vstar = 16 # Number of predicted v* images to use
-        self.guidance_scale = 7.5
+        self.num_vstar = 16  # Number of predicted v* images to use
+        self.guidance_scale = 3 # 7.5
         self.num_inference_steps = num_inference_steps
         self.setup_models()
 
@@ -121,7 +121,7 @@ class LadyVton(torch.nn.Module):
         input_data = {}
         input_data.update(human)
         input_data.update(cloth)
-        return self.forward(input_data=input_data
+        return self.forward(input_data=input_data,
                             single_cloth=True
                             )
 

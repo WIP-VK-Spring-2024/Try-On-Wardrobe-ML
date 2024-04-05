@@ -74,7 +74,7 @@ class HumanProcessor(BaseProcessor):
         return result                
 
     def process(self, image:Image):
-        human_resized = self.resizer(image)
+        human_resized = self.resizer(image, color=(255,255,255))
         result = {}
         pose_out, keypoints_json_dict = self.model_pose_estim(human_resized)
         result["pose"] = self.bytes_converter.image_to_bytes(pose_out)

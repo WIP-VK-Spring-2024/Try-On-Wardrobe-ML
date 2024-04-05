@@ -20,7 +20,7 @@ class LadyVtonAggregator:
 
     def __init__(self):
         self.preprocessor = LadyVtonInputPreprocessor()
-        self.model = LadyVton(num_inference_steps=20)
+        self.model = LadyVton()
         self.face_fix_model = FaceFixer()
         self.bytes_converter = BytesConverter()
 
