@@ -21,7 +21,7 @@ lower_cloth = Image.open(lower_fp)
 
 human_model = HumanProcessor()
 cloth_model = ClothProcessor()
-#try_on_model = LadyVtonAggregator()
+try_on_model = LadyVtonAggregator()
 
 
 
