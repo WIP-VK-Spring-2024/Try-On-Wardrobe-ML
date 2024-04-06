@@ -28,7 +28,7 @@ from app.pkg.ml.try_on.ladi_vton.src.utils.encode_text_word_embedding import enc
 from app.pkg.ml.try_on.ladi_vton.src.utils.set_seeds import set_seed
 from app.pkg.ml.try_on.ladi_vton.src.vto_pipelines.tryon_pipe import StableDiffusionTryOnePipeline
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
-
+from app.pkg.models.app.image_category import ImageCategory
 from app.pkg.settings import settings
 
 #PROJECT_ROOT = Path(__file__).absolute().parents[1].absolute()
@@ -117,14 +117,7 @@ class LadyVton(torch.nn.Module):
         # if error in generator initialization occures, replace self.device to "cuda"
         self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
-    def get_try_on(self, human: dict, cloth:dict):
-        input_data = {}
-        input_data.update(human)
-        input_data.update(cloth)
-        return self.forward(input_data=input_data,
-                            single_cloth=True
-                            )
-
+    @torch.inference_mode()
     def forward(self, input_data, single_cloth=True):
        # input_data = self.data_prepr.preprocess_input(input_data)
         if single_cloth:
@@ -180,10 +173,9 @@ class LadyVton(torch.nn.Module):
         word_embeddings = word_embeddings.reshape((word_embeddings.shape[0], self.num_vstar, -1))
 
         category_text = {
-            'dresses': 'a dress',
-            'upper_body': 'an upper body garment',
-            'lower_body': 'a lower body garment',
-
+            ImageCategory.DRESSES: 'a dress',
+            ImageCategory.UPPER_BODY: 'an upper body garment',
+            ImageCategory.LOWER_BODY: 'a lower body garment',
         }
         text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}' for
                 category in [input_data['category']]]#[batch['category']]]
@@ -226,38 +218,6 @@ class LadyVton(torch.nn.Module):
         #         gen_image.save(
         #             os.path.join(save_dir, cat, name), quality=95)
         #generated_images[0].save(save_path)
+        del encoder_hidden_states
+        
         return generated_images[0]
-
-if __name__ == '__main__':
-
-    input_data = {
-        "category": "upper_body",
-
-    }
-
-    # path to (specifically) resized person image
-    human_path = "/usr/src/app/volume/data/resized/human_resized.png"
-    input_data["image_human_orig"] = Image.open(human_path).convert('RGB')
-
-    # path to parsed human. Converts into inpaint_mask
-    parsed_human_path = "/usr/src/app/volume/data/parsed/parsed_human.png"
-    input_data["parse_orig"] = Image.open(parsed_human_path)
-
-    pose_human_im_path = "/usr/src/app/volume/data/pose/posed_human.png"
-    
-    
-    key_points_path = "/usr/src/app/volume/data/pose/keypoints.json"
-    # pose_label = input_data["keypoints_json"]
-    with open(key_points_path, 'r') as f:
-        pose_label = json.load(f)
-    input_data['keypoints_json'] = pose_label
-   
-    # cloth without background
-    cloth_path = "/usr/src/app/volume/data/no_background/shirt_white_back.png"
-    input_data["cloth"] = Image.open(cloth_path)
-
-
-    lv_prep = LadyVtonInputPreprocessor()
-    lv_prep(input_data)
-   
-    lv = LadyVton()
