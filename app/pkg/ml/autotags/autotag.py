@@ -78,7 +78,7 @@ class AutoTagger:
         for tag_group, text_tag_list in tags.items():
             result_probabilities[tag_group] = {}
 
-            self.processor(text=text_tag_list, images=image, return_tensors="pt", padding=True)
+            # self.processor(text=text_tag_list, images=image, return_tensors="pt", padding=True)
             text_inputs = self.tokenizer(text_tag_list, padding=True, return_tensors="pt")
             self._input_to_device(text_inputs)
 
