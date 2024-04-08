@@ -2,13 +2,13 @@ from typing import Dict, Union, List
 import io
 
 import torch
+import numpy as np
 from transformers import AutoProcessor, CLIPModel, AutoTokenizer
 from torch.nn import Softmax
 from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
-
-
+from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
 
 class LocalRecSys:
     """
@@ -22,10 +22,12 @@ class LocalRecSys:
         self.bytes_converter = BytesConverter()
 
     def forward(self,
-                upper_clothes: List[Dict[str, io.BytesIO]],
-                lower_clothes: List[Dict[str, io.BytesIO]],
-                dresses_clothes: List[Dict[str, io.BytesIO]],
-                user_photos:List[Dict[str, io.BytesIO]],
+                upper_clothes: List[Dict[str, io.BytesIO]] = [],
+                lower_clothes: List[Dict[str, io.BytesIO]] = [],
+                dresses_clothes: List[Dict[str, io.BytesIO]] = [],
+                outerwear_clothes: List[Dict[str, io.BytesIO]] = [],
+                
+                # user_photos:List[Dict[str, io.BytesIO]],
                 prompt: str = None,
                 top_n: int = 10,
                ) -> Dict[str, Dict[str, float]]:
@@ -36,8 +38,8 @@ class LocalRecSys:
             upper_clothes: List[Dict[str, io.BytesIO]],
             lower_clothes: List[Dict[str, io.BytesIO]],
             dresses_clothes: List[Dict[str, io.BytesIO]],
-            user_photos:List[Dict[str, io.BytesIO]] - photos of user to try_on in future.
-                    Recommends to use one or less images
+            # user_photos:List[Dict[str, io.BytesIO]] - photos of user to try_on in future.
+            #         Recommends to use one or less images
             prompt: str = None - extra prompt to search
         Returns:
             dict with sets of clothes
@@ -53,49 +55,119 @@ class LocalRecSys:
             "clothes":[,]
             },
         ]
-
         """
-        pass
-        # image = self.bytes_converter.bytes_to_image(input_data["image"])
-        # tags = input_data['tags']
-        # output_dict = self._get_tags(image, tags)
-        # return output_dict
+
+        upper_clothes = self.get_embs_per_category(upper_clothes)
+        lower_clothes = self.get_embs_per_category(lower_clothes)
+        dresses_clothes = self.get_embs_per_category(dresses_clothes)
+        outerwear_clothes = self.get_embs_per_category(outerwear_clothes)
+
+
+        if prompt:
+            prompt_features = self._get_text_embedding(prompt)
+
+        # перебор все возможных комбинаций одежды
+        outfits = []
+        for up_cloth in upper_clothes:
+            for low_cloth in lower_clothes:
+                for outer_wear_cloth in [*outerwear_clothes, None]:
+                    outfit = {'clothes':[up_cloth, low_cloth]}
+                    if outer_wear_cloth is not None:
+                      outfit['clothes'].append(outer_wear_cloth)  
+                    self._evaluate_outfit(outfit=outfit,
+                        prompt_features=prompt_features)
+                    outfits.append(outfit)
+                
+        for dress in dresses_clothes:
+         
+                outfit = {'clothes':[dress]}
+                self._evaluate_outfit(outfit=outfit,
+                    prompt_features=prompt_features)
+
+                outfits.append(outfit)
+
+        for cloth in [*upper_clothes, *lower_clothes, *dresses_clothes, *outerwear_clothes]:
+            del cloth['tensor']
+
+        return sorted(outfits, key=lambda x: x['score'], reverse=True)[:top_n]
+
+
+    def _evaluate_outfit(self, outfit, prompt_features):
+        score_list = [cloth['tensor'] for cloth in outfit['clothes']]
+
+        prompt_correlations = [(prompt_features@score).item() for score in score_list]
+        # pairwise_correlations = [(score_list[i]@score_list[j]).item() for i in range(len(score_list)) for j in range(i, len(score_list)) if i != j]
+        outfit['score'] = np.mean(prompt_correlations) 
+
+
+    def get_embs_per_category(self, clothes:List[Dict[str, io.BytesIO]]):
+        clothes = self.prepare_clothes(clothes)
+        pil_clothes = [cloth['cloth'] for cloth in clothes]
+        image_features = self._get_images_embedding(pil_clothes)
+        for cloth, tensor in zip(clothes, image_features):
+            cloth['tensor'] = tensor
+        return clothes
+
+
+    def prepare_clothes(self, clothes: list):
+        new_clothes = []      
+        for cloth in clothes:
+            new_cloth = {}
+            cloth_no_background = self.bytes_converter.bytes_to_image(cloth['cloth'])
+            white_background_cloth = ClothPreprocessor.replace_background_RGBA(
+                                                        cloth_no_background,
+                                                        color=(255,255,255)
+                                                        )
+            new_cloth['cloth'] = white_background_cloth
+            new_clothes.append(new_cloth)
+        return new_clothes            
+
 
     @torch.inference_mode()
-    def _get_image_embedding(self, images:List[Dict[str, Image]] ) -> Dict[str, float]:
+    def _get_text_embedding(self, text:str ) -> torch.tensor:
         """
         Gets images embeddings
         
         Args:
             images:List[Dict[str, Image]] - images to get embeddings
-            tags:Dict[str, List[str]]] - tags
             
         Returns:
-            dict with probabilities   
+            original dict but with embeddings
         """
-        image_inputs = self.processor(images=image, return_tensors="pt")
+
+        if len(text) == 0:
+            raise ValueError("Got empty text")
+
+        text_inputs = self.tokenizer(text, padding=True, return_tensors="pt")
+        self._input_to_device(text_inputs)
+
+        text_features = self.model.get_text_features(**text_inputs)
+
+        return text_features
+
+
+    @torch.inference_mode()
+    def _get_images_embedding(self, images:List[Image.Image] ) \
+                                ->List[Dict[str, Union[Image.Image, torch.tensor]]]:
+        """
+        Gets images embeddings
+        
+        Args:
+            images:List[Dict[str, Image]] - images to get embeddings
+            
+        Returns:
+            original dict but with embeddings
+        """
+
+        if len(images) == 0:
+            return []
+
+        image_inputs = self.processor(images=images, return_tensors="pt")
         self._input_to_device(image_inputs)
 
         image_features = self.model.get_image_features(**image_inputs)
 
-        result_probabilities = {}
-        for tag_group, text_tag_list in tags.items():
-            result_probabilities[tag_group] = {}
-
-            self.processor(text=text_tag_list, images=image, return_tensors="pt", padding=True)
-            text_inputs = self.tokenizer(text_tag_list, padding=True, return_tensors="pt")
-            self._input_to_device(text_inputs)
-
-            text_features = self.model.get_text_features(**text_inputs)
-            logits = image_features @ text_features.T
-            probabilities = self.normalize(logits)
-            probabilities = probabilities.flatten().tolist()
-
-            for tag, prob in zip(text_tag_list, probabilities):
-                r_prob = round(prob, 3)
-                result_probabilities[tag_group][tag] = r_prob
-
-        return result_probabilities
+        return image_features
 
     def _input_to_device(self, input_data:dict):
         """
@@ -104,4 +176,12 @@ class LocalRecSys:
         for key, value in input_data.items():
             if isinstance(value, torch.Tensor):
                 input_data[key] = value.to(self.device)
-                
+
+    @staticmethod
+    def dot_product(*args: List[torch.tensor]):
+
+        num = 1
+        for i in args:
+            if i is not None:
+                num *= i.flatten()
+        return num.sum()
