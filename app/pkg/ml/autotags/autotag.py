@@ -8,8 +8,10 @@ from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
 
+
 def max_normalize(probs):
     return probs/probs.max().item()
+
 
 class AutoTagger:
     def __init__(self, device="cuda:0"):
