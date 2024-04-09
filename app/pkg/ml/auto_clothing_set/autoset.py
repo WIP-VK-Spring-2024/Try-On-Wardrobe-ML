@@ -10,6 +10,11 @@ from PIL import Image
 from app.pkg.ml.buffer_converters import BytesConverter
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
 
+def sum_normalize(array):
+    if isinstance(array, list):
+        array = np.array(array)
+    return array/array.sum()
+
 class LocalRecSys:
     """
     Recommends set of clothes (outfit)
@@ -18,6 +23,9 @@ class LocalRecSys:
         self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
         self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
+        self.softmax = torch.nn.Softmax(dim=0)
+        
+
         self.device = device
         self.bytes_converter = BytesConverter()
 
@@ -29,7 +37,7 @@ class LocalRecSys:
                 
                 # user_photos:List[Dict[str, io.BytesIO]],
                 prompt: str = None,
-                top_n: int = 10,
+                sample_amount: int = 10,
                ) -> Dict[str, Dict[str, float]]:
         """
         Gets probability for each tag
@@ -38,9 +46,8 @@ class LocalRecSys:
             upper_clothes: List[Dict[str, io.BytesIO]],
             lower_clothes: List[Dict[str, io.BytesIO]],
             dresses_clothes: List[Dict[str, io.BytesIO]],
-            # user_photos:List[Dict[str, io.BytesIO]] - photos of user to try_on in future.
-            #         Recommends to use one or less images
             prompt: str = None - extra prompt to search
+            sample_amount: int = 10 - samples of outfits  
         Returns:
             dict with sets of clothes
         
@@ -65,6 +72,8 @@ class LocalRecSys:
 
         if prompt:
             prompt_features = self._get_text_embedding(prompt)
+        else:
+            prompt_features = None
 
         # перебор все возможных комбинаций одежды
         outfits = []
@@ -89,17 +98,26 @@ class LocalRecSys:
         for cloth in [*upper_clothes, *lower_clothes, *dresses_clothes, *outerwear_clothes]:
             del cloth['tensor']
 
-        return sorted(outfits, key=lambda x: x['score'], reverse=True)[:top_n]
-
+        sorted_outfits = sorted(outfits, key=lambda x: x['score'], reverse=True)
+        return self.sample_outfit(sorted_outfits, sample_amount)
 
     def _evaluate_outfit(self, outfit, prompt_features):
         score_list = [cloth['tensor'] for cloth in outfit['clothes']]
 
-        prompt_correlations = [(prompt_features@score).item() for score in score_list]
-        # pairwise_correlations = [(score_list[i]@score_list[j]).item() for i in range(len(score_list)) for j in range(i, len(score_list)) if i != j]
-        outfit['score'] = np.mean(prompt_correlations) 
+        if prompt_features is not None:
+            prompt_correlations = [(prompt_features@score).item() for score in score_list]
+        else:
+            prompt_correlations=[0]
 
+        if len(outfit['clothes']) > 1:
+            clothes_score = self.dot_product(*score_list).item()/len(outfit['clothes'])
+        else:
+            clothes_score = 0
 
+        outfit['score'] = 25 * np.mean(prompt_correlations) + clothes_score
+        outfit['clothes_score'] = clothes_score
+        outfit['prompt_corr'] = np.mean(prompt_correlations)
+        
     def get_embs_per_category(self, clothes:List[Dict[str, io.BytesIO]]):
         clothes = self.prepare_clothes(clothes)
         pil_clothes = [cloth['cloth'] for cloth in clothes]
@@ -168,6 +186,27 @@ class LocalRecSys:
         image_features = self.model.get_image_features(**image_inputs)
 
         return image_features
+
+    def sample_outfit(self, outfits, sample_amount):
+
+        scores =torch.tensor([outfit['score']/30 for outfit in outfits])
+        normalized_scores = self.softmax(scores)
+
+        top_p_scores = None
+        top_p_index = None
+        top_p = 0.9
+        for i, score in enumerate(normalized_scores):
+            if normalized_scores[:i].sum() > top_p:
+                top_p_scores = normalized_scores[:i]
+                top_p_index = i
+                break
+
+        new_scores = sum_normalize(top_p_scores)
+
+        indexes = np.arange(len(outfits))
+        sampled_indexes = np.random.choice(indexes,(sample_amount,), p=new_scores ,replace=False)
+        filtered_outfit = [outfits[i] for i in sampled_indexes]
+        return filtered_outfit
 
     def _input_to_device(self, input_data:dict):
         """
