@@ -50,7 +50,7 @@ class CutWorker:
             )
 
             logger.info(
-                "Starting try on pipeline clothes id: [%s]",
+                "Starting cut pipeline clothes id: [%s]",
                 message.clothes_id,
             )
             # Model pipeline     

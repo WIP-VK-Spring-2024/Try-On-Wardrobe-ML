@@ -7,7 +7,6 @@ from pydantic.fields import Field
 from pydantic import UUID4
 
 from app.pkg.models.base import BaseModel
-from app.pkg.models.app.season import Season
 from app.pkg.settings import settings
 
 __all__ = [
@@ -33,17 +32,13 @@ class CutFields:
         default=str(settings.API_FILESYSTEM_FOLDER),
     )
 
-    season: Season = Field(
-        description="Image season.",
-        example=Season.SUMMER,
-    )
-    seasons: Dict[Season, float] = Field(
-        description="Image seasons.",
-        example=[Season.SUMMER],
-    )
     probability: Dict[str, float] = Field(
         description="Classification probability.",
         example="dress",
+    )
+    seasons: List[str] = Field(
+        description="Image seasons.",
+        example=["winter"],
     )
     categories: List[str] = Field(
         description="Image categories.",
@@ -63,7 +58,7 @@ class CutFields:
     )
 
 class ClothesTaskClassification(BaseCutModel):
-    seasons: List[Season] = CutFields.seasons
+    seasons: List[str] = CutFields.seasons
     categories: List[str] = CutFields.categories
     subcategories: List[str] = CutFields.subcategories
     tags: List[str] = CutFields.tags
@@ -76,7 +71,7 @@ class CutTaskCmd(BaseCutModel):
     classification: ClothesTaskClassification
 
 class ClothesRespClassification(BaseCutModel):
-    seasons: Dict[Season, float] = CutFields.probability
+    seasons: Dict[str, float] = CutFields.probability
     categories: Dict[str, float] = CutFields.probability
     subcategories: Dict[str, float] = CutFields.probability
     tags: Dict[str, float] = CutFields.probability
