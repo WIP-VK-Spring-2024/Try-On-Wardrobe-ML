@@ -2,12 +2,14 @@
 
 from io import BytesIO
 from typing import BinaryIO, List, Dict
-from uuid import UUID4
+from uuid import uuid4
+
+import pydantic
 
 from app.internal.repository.rabbitmq.outfit_gen_task import OutfitGenTaskRepository
 from app.internal.repository.rabbitmq.outfit_gen_response import OutfitGenRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import OutfitGenClothes, OutfitGenResponseCmd, ImageCategoryAutoset
+from app.pkg.models import OutfitGenClothes, OutfitGenResponseCmd, ImageCategoryAutoset, OutfitGenClothes
 from app.pkg.logger import get_logger
 from app.pkg.ml.auto_clothing_set.autoset import LocalRecSys
 from app.pkg.settings import settings
@@ -42,23 +44,20 @@ class OutfitGenWorker:
         async for message in self.task_repository.read():
             logger.info("New message [%s]", message)
 
-            data = self.prepare_data(
+            data = self.read_clothes(
                 message.clothes,
                 folder=settings.CLOTHES_DIR,
             )
-            print(data)
 
-            # logger.info(
-            #     "Starting try on pipeline, %s clothes: [%s]",
-            #     len(message.clothes),
-            #     message.clothes,
-            # )
-            # # Model pipeline           
-            # try_on = self.pipeline(
-            #     user_image=user_image,
-            #     clothes=message.clothes,
-            #     clothes_images=clothes_images,
-            # )
+            logger.info("Starting try on pipeline")
+            # Model pipeline           
+            clothes = self.pipeline(
+                data=data,
+                prompt=message.prompt,
+                amount=message.amount,
+            )
+            logger.debug("End pipeline, result: [%s]", clothes)
+
 
             # # Save result
             # res_file_name = f"{message.clothes[0].clothes_id}"
@@ -84,7 +83,7 @@ class OutfitGenWorker:
         self,
         clothes: List[OutfitGenClothes],
         folder: str
-    ) -> Dict[ImageCategoryAutoset, List[Dict[Dict[str, UUID4], Dict[str, BytesIO]]]]:
+    ) -> Dict[ImageCategoryAutoset, List[Dict[Dict[str, uuid4], Dict[str, BytesIO]]]]:
         """Read clothes from file service in correct order"""
         result = {
             ImageCategoryAutoset.UPPER_BODY: [],
@@ -100,44 +99,32 @@ class OutfitGenWorker:
                 folder=folder,
             )
             clothe = {
-                'clothe': image,
+                'cloth': image,
                 'clothes_id': clothe.clothes_id,
             }
 
-            result[ImageCategoryAutoset].append(clothe)
+            result[category].append(clothe)
     
         return result
     
 
-    # def pipeline(
-    #     self,
-    #     user_image: BinaryIO,
-    #     clothes: List[TryOnClothes],
-    #     clothes_images: List[BytesIO],
-    # ) -> BytesIO:
-    #     """Try on model pipeline
+    def pipeline(
+        self,
+        data: Dict[ImageCategoryAutoset, List[Dict[Dict[str, uuid4], Dict[str, BytesIO]]]],
+        prompt: str = None,
+        amount: int = 10,
+    ) -> List[OutfitGenClothes]:
+        # Local autoset gen
+        autosets = self.outfit_gen_model.forward(
+            upper_clothes=data[ImageCategoryAutoset.UPPER_BODY],
+            lower_clothes=data[ImageCategoryAutoset.LOWER_BODY],
+            dresses_clothes=data[ImageCategoryAutoset.DRESSES],
+            outerwear_clothes=data[ImageCategoryAutoset.OUTWEAR],
+            prompt=prompt,
+            amount=amount,
+        )
+        logger.debug("End autoset gen, result: [%s]", autosets)
         
-    #     Args:
-    #         clothes_images: List[TryOnImageClothes], list of clothes images to try on
-    #         user_image: BinaryIO, user image for processing
-    #     """
-    #     # Human processing
-    #     processed_user = self.human_model.consistent_forward(user_image)
-    #     logger.debug("End human processing, result: [%s]", processed_user["parse_orig"])
-        
-    #     # Try on
-    #     try_on_clothes = [
-    #         {
-    #             "category": ImageCategory(clothe.category),
-    #             "cloth": image,
-    #         } 
-    #         for clothe, image in zip(clothes, clothes_images)
-    #     ]
+        result_model = OutfitGenClothes.parse_obj(autosets)
 
-    #     try_on = self.try_on_model.try_on_set(
-    #         human=processed_user,
-    #         clothes=try_on_clothes,
-    #     )
-    #     logger.info("End try on, result: [%s]", try_on)
-
-    #     return try_on
+        return result_model

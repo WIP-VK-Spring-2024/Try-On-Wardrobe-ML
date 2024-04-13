@@ -203,7 +203,8 @@ class LocalRecSys:
 
         new_scores = sum_normalize(top_p_scores)
 
-        indexes = np.arange(len(outfits))
+        indexes = np.arange(len(new_scores))
+        # print(indexes, sample_amount, new_scores)
         sampled_indexes = np.random.choice(indexes,(sample_amount,), p=new_scores ,replace=False)
         filtered_outfit = [outfits[i] for i in sampled_indexes]
         return filtered_outfit

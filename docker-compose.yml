@@ -12,7 +12,7 @@ services:
       - ${DATA_VOLUME}:/usr/src/app/volume
  
     ports:
-      - 127.0.0.1:8000:8000
+      - 0.0.0.0:8000:8000
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
 
@@ -27,8 +27,8 @@ services:
     volumes:
       - ${RESOURCES_RABBIT_DATA_VOLUME}:/var/lib/rabbitmq
     ports:
-      - 127.0.0.1:${RESOURCES__RABBITMQ__PORT}:5672
-      - 127.0.0.1:15672:15672
+      - 0.0.0.0:${RESOURCES__RABBITMQ__PORT}:5672
+      - 0.0.0.0:15672:15672
 
 networks:
   default:

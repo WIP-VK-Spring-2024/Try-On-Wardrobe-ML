@@ -35,16 +35,24 @@ class OutfitGenFields:
         default=ImageCategory.UPPER_BODY,
     )
 
-class OutfitGenClothes(BaseOutfitGenModel):
+class OutfitGenClothesCategory(BaseOutfitGenModel):
     clothes_id: UUID4 = OutfitGenFields.clothes_id
     category: ImageCategory = OutfitGenFields.category
+
+class OutfitGenClothes(BaseOutfitGenModel):
+    score_id: int = OutfitGenFields.amount
+    clothes_id: UUID4 = OutfitGenFields.clothes_id
 
 class OutfitGenTaskCmd(BaseOutfitGenModel):
     user_id: UUID4 = OutfitGenFields.user_id
     prompt: str = OutfitGenFields.prompt
     amount: int = OutfitGenFields.amount
 
-    clothes: List[OutfitGenClothes]
+    clothes: List[OutfitGenClothesCategory]
 
 class OutfitGenResponseCmd(OutfitGenTaskCmd):
-    pass
+    user_id: UUID4 = OutfitGenFields.user_id
+    prompt: str = OutfitGenFields.prompt
+    amount: int = OutfitGenFields.amount
+
+    clothes: List[OutfitGenClothes]
