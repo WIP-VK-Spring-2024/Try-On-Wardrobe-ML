@@ -6,24 +6,20 @@ from typing import BinaryIO, List
 from app.internal.repository.rabbitmq.try_on_task import TryOnTaskRepository
 from app.internal.repository.rabbitmq.try_on_response import TryOnRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import RecSysResponseCmd
+from app.pkg.models import OutfitGenResponseCmd
 from app.pkg.logger import get_logger
-# from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
-# from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
-# from app.pkg.ml.try_on.lady_vton import LadyVtonAggregator
+from app.pkg.ml.auto_clothing_set.autoset import LocalRecSys
 from app.pkg.settings import settings
 
 logger = get_logger(__name__)
 
-class RecSysWorker:
+class OutfitGenWorker:
     """Model worker for read task queue."""
 
     task_repository: TryOnTaskRepository
     resp_repository: TryOnRespRepository
     file_service: AmazonS3Service
-    # clothes_model: ClothProcessor
-    # human_model = HumanProcessor
-    # try_on_model = LadyVtonAggregator
+    outfit_gen_model: LocalRecSys
 
 
     def __init__(
@@ -31,17 +27,13 @@ class RecSysWorker:
         task_repository: TryOnTaskRepository,
         resp_repository: TryOnRespRepository,
         file_service: AmazonS3Service,
-        # clothes_model: ClothProcessor,
-        # human_model: HumanProcessor,
-        # try_on_model: LadyVtonAggregator,
+        outfit_gen_model: LocalRecSys
     ):
         self.task_repository = task_repository
         self.resp_repository = resp_repository
         self.file_service = file_service
     
-        # self.clothes_model = clothes_model
-        # self.human_model = human_model
-        # self.try_on_model = try_on_model
+        self.outfit_gen_model = outfit_gen_model
 
     async def listen_queue(self):
         logger.info("Starting listen queue...")

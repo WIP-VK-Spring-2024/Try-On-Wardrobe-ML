@@ -1,5 +1,5 @@
 from fastapi import status, Depends, APIRouter
-from app.pkg.models import TryOnTaskCmd, CutTaskCmd, RecSysTaskCmd
+from app.pkg.models import TryOnTaskCmd, CutTaskCmd, OutfitGenTaskCmd
 from app.internal.services.model import ModelService
 
 
@@ -36,13 +36,13 @@ async def cut(
 
 
 @model_router.post(
-    "/recsys",
-    response_model=RecSysTaskCmd,
+    "/outfit_gen",
+    response_model=OutfitGenTaskCmd,
     status_code=status.HTTP_201_CREATED,
     description="Create rec sys task.",
 )
 async def cut(
-    cmd: RecSysTaskCmd,
+    cmd: OutfitGenTaskCmd,
     model_service: ModelService = Depends(ModelService),
 ):
-    return await model_service.create_recsys_task(cmd=cmd)
+    return await model_service.create_outfit_gen_task(cmd=cmd)

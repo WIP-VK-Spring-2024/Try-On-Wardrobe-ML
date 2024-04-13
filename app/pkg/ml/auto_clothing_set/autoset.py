@@ -138,7 +138,7 @@ class LocalRecSys:
                                                         )
             new_cloth['cloth'] = white_background_cloth
             new_clothes.append(new_cloth)
-        return new_clothes            
+        return new_clothes
 
 
     @torch.inference_mode()

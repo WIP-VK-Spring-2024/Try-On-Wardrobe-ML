@@ -1,4 +1,4 @@
-"""Models of recsys model."""
+"""Models of outfit gen model."""
 
 import uuid
 from typing import List
@@ -11,9 +11,9 @@ from app.pkg.settings import settings
 from app.pkg.models.app.image_category import ImageCategory
 
 __all__ = [
-    "RecSysClothes",
-    "RecSysTaskCmd",
-    "RecSysResponseCmd",
+    "OutfitGenClothes",
+    "OutfitGenTaskCmd",
+    "OutfitGenResponseCmd",
 ]
 
 
@@ -21,7 +21,7 @@ class BaseRecSysModel(BaseModel):
     """Base model for recsys model."""
 
 
-class RecSysFields:
+class OutfitGenFields:
     """Model fields of try on model."""
 
     user_id: UUID4 = Field(description="User id.", example=uuid.uuid4())
@@ -34,23 +34,21 @@ class RecSysFields:
         default=ImageCategory.UPPER_BODY,
     )
 
-    file_dir: str = Field(
-        description="file dir path.",
-        example="try_on/102",
-        default=str(settings.API_FILESYSTEM_FOLDER),
-    )
-
-class RecSysClothes(BaseRecSysModel):
-    clothes_id: UUID4 = RecSysFields.clothes_id
-    category: ImageCategory = RecSysFields.category
+class OutfitGenClothes(BaseRecSysModel):
+    clothes_id: UUID4 = OutfitGenFields.clothes_id
+    category: ImageCategory = OutfitGenFields.category
 
 
-class RecSysTaskCmd(BaseRecSysModel):
-    user_id: UUID4 = RecSysFields.user_id
-    clothes_id: UUID4 = RecSysFields.clothes_id
+# class RecSysForward(BaseRecSysModel):
+#     clothes_id: UUID4 = OutfitGenFields.clothes_id
+#     clothes_image: bytes
 
-    clothes: List[RecSysClothes]
+class OutfitGenTaskCmd(BaseRecSysModel):
+    user_id: UUID4 = OutfitGenFields.user_id
+    prompt: str = OutfitGenFields.prompt
+
+    clothes: List[OutfitGenClothes]
 
 
-class RecSysResponseCmd(RecSysTaskCmd):
+class OutfitGenResponseCmd(OutfitGenTaskCmd):
     pass
