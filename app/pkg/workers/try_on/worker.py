@@ -54,7 +54,7 @@ class TryOnWorker:
                 folder=message.user_image_dir,
             )
 
-            clothes_images = self.read_clothes(message.clothes, folder=message.clothes_dir)
+            clothes_images = self.read_clothes(message.clothes, folder=settings.CLOTHES_DIR)
 
             logger.info(
                 "Starting try on pipeline, %s clothes: [%s]",
@@ -70,7 +70,7 @@ class TryOnWorker:
 
             # Save result
             res_file_name = f"{message.clothes[0].clothes_id}"
-            res_file_dir = f"{settings.ML.TRY_ON_DIR}/{message.user_image_id}"
+            res_file_dir = f"{settings.TRY_ON_DIR}/{message.user_image_id}"
 
             self.file_service.upload(
                 file=try_on,

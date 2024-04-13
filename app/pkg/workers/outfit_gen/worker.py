@@ -1,12 +1,13 @@
 """Rec sys worker for read task queue."""
 
 from io import BytesIO
-from typing import BinaryIO, List
+from typing import BinaryIO, List, Dict
+from uuid import UUID4
 
-from app.internal.repository.rabbitmq.try_on_task import TryOnTaskRepository
-from app.internal.repository.rabbitmq.try_on_response import TryOnRespRepository
+from app.internal.repository.rabbitmq.outfit_gen_task import OutfitGenTaskRepository
+from app.internal.repository.rabbitmq.outfit_gen_response import OutfitGenRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import OutfitGenResponseCmd
+from app.pkg.models import OutfitGenClothes, OutfitGenResponseCmd, ImageCategoryAutoset
 from app.pkg.logger import get_logger
 from app.pkg.ml.auto_clothing_set.autoset import LocalRecSys
 from app.pkg.settings import settings
@@ -16,16 +17,16 @@ logger = get_logger(__name__)
 class OutfitGenWorker:
     """Model worker for read task queue."""
 
-    task_repository: TryOnTaskRepository
-    resp_repository: TryOnRespRepository
+    task_repository: OutfitGenTaskRepository
+    resp_repository: OutfitGenRespRepository
     file_service: AmazonS3Service
     outfit_gen_model: LocalRecSys
 
 
     def __init__(
         self,
-        task_repository: TryOnTaskRepository,
-        resp_repository: TryOnRespRepository,
+        task_repository: OutfitGenTaskRepository,
+        resp_repository: OutfitGenRespRepository,
         file_service: AmazonS3Service,
         outfit_gen_model: LocalRecSys
     ):
@@ -41,12 +42,11 @@ class OutfitGenWorker:
         async for message in self.task_repository.read():
             logger.info("New message [%s]", message)
 
-            # user_image = self.file_service.read(
-            #     file_name=message.user_image_id,
-            #     folder=message.user_image_dir,
-            # )
-
-            # clothes_images = self.read_clothes(message.clothes, folder=message.clothes_dir)
+            data = self.prepare_data(
+                message.clothes,
+                folder=settings.CLOTHES_DIR,
+            )
+            print(data)
 
             # logger.info(
             #     "Starting try on pipeline, %s clothes: [%s]",
@@ -75,22 +75,39 @@ class OutfitGenWorker:
             #     res_file_name,
             #     res_file_dir,
             # )
-            cmd = RecSysResponseCmd(
+            cmd = OutfitGenResponseCmd(
                 **message.dict(),
             )
             await self.resp_repository.create(cmd=cmd)
 
-    # def read_clothes(self, clothes: List[TryOnClothes], folder: str) -> List[BytesIO]:
-    #     """Read clothes from file service"""
-    #     images = []
-    #     for clothe in clothes:
-    #         images.append(
-    #             self.file_service.read(
-    #                 file_name=clothe.clothes_id,
-    #                 folder=folder,
-    #             ),
-    #         )
-    #     return images
+    def read_clothes(
+        self,
+        clothes: List[OutfitGenClothes],
+        folder: str
+    ) -> Dict[ImageCategoryAutoset, List[Dict[Dict[str, UUID4], Dict[str, BytesIO]]]]:
+        """Read clothes from file service in correct order"""
+        result = {
+            ImageCategoryAutoset.UPPER_BODY: [],
+            ImageCategoryAutoset.LOWER_BODY: [],
+            ImageCategoryAutoset.DRESSES: [],
+            ImageCategoryAutoset.OUTWEAR: [],
+        }
+
+        for clothe in clothes:
+            category = ImageCategoryAutoset(clothe.category)
+            image = self.file_service.read(
+                file_name=clothe.clothes_id,
+                folder=folder,
+            )
+            clothe = {
+                'clothe': image,
+                'clothes_id': clothe.clothes_id,
+            }
+
+            result[ImageCategoryAutoset].append(clothe)
+    
+        return result
+    
 
     # def pipeline(
     #     self,

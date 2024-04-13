@@ -163,15 +163,13 @@ class ML(_Settings):
 
     #: pathlib.Path: Path of models weights.
     WEIGHTS_PATH: pathlib.Path = pathlib.Path("./app/pkg/ml/weights")
-    TRY_ON_DIR: str = "try_on"
-    CUT_DIR: str = "cut"
 
     TRY_ON_TASK_QUEUE: str = "try_on"
     TRY_ON_RESPONSE_QUEUE: str = "try_on_response"
     CUT_TASK_QUEUE: str = "cut"
     CUT_RESPONSE_QUEUE: str = "cut_response"
     OUTFIT_GEN_TASK_QUEUE: str = "outfit_gen"
-    OUTFIT_GEN_RESPONSE_QUEUE: str ="outfit_gen_response"
+    OUTFIT_GEN_RESPONSE_QUEUE: str = "outfit_gen_response"
 
 class Settings(_Settings):
     """APP settings."""
@@ -187,6 +185,11 @@ class Settings(_Settings):
     AWS: AmazonS3
 
     ML: ML
+
+    # DIRS
+    CLOTHES_DIR: str = "clothes"
+    TRY_ON_DIR: str = "try_on"
+    CUT_DIR: str = "cut"
 
     API_FILESYSTEM_FOLDER: pathlib.Path = pathlib.Path("./volume/data")
 
