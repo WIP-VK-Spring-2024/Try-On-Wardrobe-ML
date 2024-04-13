@@ -9,6 +9,8 @@ from app.pkg.models.app.outfit_gen import (
     OutfitGenClothes,
     OutfitGenTaskCmd,
     OutfitGenResponseCmd,
+    Outfit,
+    OutfitGenClothesCategory,
 )
 from app.pkg.models.app.amazon_s3 import ResponseMessage
 from app.pkg.models.app.image_category import ImageCategory, ImageCategoryAutoset

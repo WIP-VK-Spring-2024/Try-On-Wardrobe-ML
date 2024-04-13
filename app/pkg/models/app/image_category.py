@@ -15,7 +15,7 @@ class ImageCategory(BaseEnum):
     UPPER_BODY: str = "upper_body"
 
 class ImageCategoryAutoset(BaseEnum):
-    LOWER_BODY: str = "lower_body"
-    DRESSES: str = "dresses"
-    UPPER_BODY: str = "upper_body"
-    OUTWEAR: str = "outwear"
+    LOWER_BODY: str = "lower garment"
+    DRESSES: str = "dress"
+    UPPER_BODY: str = "upper garment"
+    OUTWEAR: str = "outerwear"

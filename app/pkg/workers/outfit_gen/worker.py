@@ -9,7 +9,7 @@ import pydantic
 from app.internal.repository.rabbitmq.outfit_gen_task import OutfitGenTaskRepository
 from app.internal.repository.rabbitmq.outfit_gen_response import OutfitGenRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import OutfitGenClothes, OutfitGenResponseCmd, ImageCategoryAutoset, OutfitGenClothes
+from app.pkg.models import OutfitGenClothes, OutfitGenResponseCmd, ImageCategoryAutoset, OutfitGenClothes, Outfit
 from app.pkg.logger import get_logger
 from app.pkg.ml.auto_clothing_set.autoset import LocalRecSys
 from app.pkg.settings import settings
@@ -51,32 +51,19 @@ class OutfitGenWorker:
 
             logger.info("Starting try on pipeline")
             # Model pipeline           
-            clothes = self.pipeline(
+            outfits = self.pipeline(
                 data=data,
                 prompt=message.prompt,
                 amount=message.amount,
             )
-            logger.debug("End pipeline, result: [%s]", clothes)
+            logger.debug("End pipeline, result: [%s]", outfits)
 
-
-            # # Save result
-            # res_file_name = f"{message.clothes[0].clothes_id}"
-            # res_file_dir = f"{settings.ML.TRY_ON_DIR}/{message.user_image_id}"
-
-            # self.file_service.upload(
-            #     file=try_on,
-            #     file_name=res_file_name,
-            #     folder=res_file_dir,
-            # )
-            
-            # logger.info(
-            #     "Try on result file name [%s], dir [%s]",
-            #     res_file_name,
-            #     res_file_dir,
-            # )
             cmd = OutfitGenResponseCmd(
-                **message.dict(),
+                user_id=message.user_id,
+                outfits=outfits,
             )
+            logger.info("Result model: [%s]", cmd)
+
             await self.resp_repository.create(cmd=cmd)
 
     def read_clothes(
@@ -115,16 +102,27 @@ class OutfitGenWorker:
         amount: int = 10,
     ) -> List[OutfitGenClothes]:
         # Local autoset gen
-        autosets = self.outfit_gen_model.forward(
+
+        outfits = self.outfit_gen_model.forward(
             upper_clothes=data[ImageCategoryAutoset.UPPER_BODY],
             lower_clothes=data[ImageCategoryAutoset.LOWER_BODY],
             dresses_clothes=data[ImageCategoryAutoset.DRESSES],
             outerwear_clothes=data[ImageCategoryAutoset.OUTWEAR],
             prompt=prompt,
-            amount=amount,
+            sample_amount=amount,
         )
-        logger.debug("End autoset gen, result: [%s]", autosets)
-        
-        result_model = OutfitGenClothes.parse_obj(autosets)
+        logger.debug("End autoset gen, result: [%s]", outfits)
 
-        return result_model
+        result_outfits = []
+        for outfit in outfits:
+            clothes = []
+            for cloth in outfit['clothes']:
+                outfit_gen_clothes = OutfitGenClothes(
+                    clothes_id=cloth['clothes_id'],
+                )
+                clothes.append(outfit_gen_clothes)
+
+            cur_outfit = Outfit(clothes=clothes)
+            result_outfits.append(cur_outfit)
+
+        return result_outfits

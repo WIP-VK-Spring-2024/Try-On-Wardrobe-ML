@@ -8,12 +8,14 @@ from pydantic import UUID4
 
 from app.pkg.models.base import BaseModel
 from app.pkg.settings import settings
-from app.pkg.models.app.image_category import ImageCategory
+from app.pkg.models.app.image_category import ImageCategoryAutoset
 
 __all__ = [
     "OutfitGenClothes",
     "OutfitGenTaskCmd",
     "OutfitGenResponseCmd",
+    "Outfit",
+    "OutfitGenClothesCategory",
 ]
 
 
@@ -29,19 +31,15 @@ class OutfitGenFields:
     amount: int = Field(description="Prompt for outfit gen.", example=10, default=10)
 
     clothes_id: UUID4 = Field(description="Clothes id.", example=uuid.uuid4())
-    category: ImageCategory = Field(
+    category: ImageCategoryAutoset = Field(
         description="Image category.",
-        example=ImageCategory.UPPER_BODY,
-        default=ImageCategory.UPPER_BODY,
+        example=ImageCategoryAutoset.UPPER_BODY,
+        default=ImageCategoryAutoset.UPPER_BODY,
     )
 
 class OutfitGenClothesCategory(BaseOutfitGenModel):
     clothes_id: UUID4 = OutfitGenFields.clothes_id
-    category: ImageCategory = OutfitGenFields.category
-
-class OutfitGenClothes(BaseOutfitGenModel):
-    score_id: int = OutfitGenFields.amount
-    clothes_id: UUID4 = OutfitGenFields.clothes_id
+    category: ImageCategoryAutoset = OutfitGenFields.category
 
 class OutfitGenTaskCmd(BaseOutfitGenModel):
     user_id: UUID4 = OutfitGenFields.user_id
@@ -50,9 +48,12 @@ class OutfitGenTaskCmd(BaseOutfitGenModel):
 
     clothes: List[OutfitGenClothesCategory]
 
-class OutfitGenResponseCmd(OutfitGenTaskCmd):
-    user_id: UUID4 = OutfitGenFields.user_id
-    prompt: str = OutfitGenFields.prompt
-    amount: int = OutfitGenFields.amount
+class OutfitGenClothes(BaseOutfitGenModel):
+    clothes_id: UUID4 = OutfitGenFields.clothes_id
 
+class Outfit(BaseOutfitGenModel):
     clothes: List[OutfitGenClothes]
+
+class OutfitGenResponseCmd(BaseOutfitGenModel):
+    user_id: UUID4 = OutfitGenFields.user_id
+    outfits: List[Outfit]

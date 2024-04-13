@@ -9,6 +9,9 @@ from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
+from app.pkg.logger import get_logger
+
+logger = get_logger(__name__)
 
 def sum_normalize(array):
     if isinstance(array, list):
@@ -19,13 +22,14 @@ class LocalRecSys:
     """
     Recommends set of clothes (outfit)
     """
-    def __init__(self, device="cuda:0"):
+    def __init__(self, device="cuda:0", return_cloth_fields = ["clothes_id"]):
         self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
         self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self.softmax = torch.nn.Softmax(dim=0)
         
 
+        self.return_cloth_fields = return_cloth_fields
         self.device = device
         self.bytes_converter = BytesConverter()
 
@@ -63,6 +67,8 @@ class LocalRecSys:
             },
         ]
         """
+        if prompt == '':
+            prompt = None
 
         upper_clothes = self.get_embs_per_category(upper_clothes)
         lower_clothes = self.get_embs_per_category(lower_clothes)
@@ -99,7 +105,23 @@ class LocalRecSys:
             del cloth['tensor']
 
         sorted_outfits = sorted(outfits, key=lambda x: x['score'], reverse=True)
-        return self.sample_outfit(sorted_outfits, sample_amount)
+
+        # sample some outfits
+        sampled_outfits = self.sample_outfit(sorted_outfits, sample_amount)
+        return self.stay_attributes(sampled_outfits)
+
+    def stay_attributes(self, outfits):
+        outfits_cleared_fields = []
+        for outfit in outfits:
+            outfit_clothes = []
+            for cloth in outfit['clothes']:
+                
+                new_cloth = {}
+                for parameter in self.return_cloth_fields:
+                    new_cloth[parameter] = cloth[parameter]
+                outfit_clothes.append(new_cloth)
+            outfits_cleared_fields.append({'clothes':outfit_clothes})
+        return outfits_cleared_fields             
 
     def _evaluate_outfit(self, outfit, prompt_features):
         score_list = [cloth['tensor'] for cloth in outfit['clothes']]
@@ -128,16 +150,23 @@ class LocalRecSys:
 
 
     def prepare_clothes(self, clothes: list):
-        new_clothes = []      
-        for cloth in clothes:
-            new_cloth = {}
-            cloth_no_background = self.bytes_converter.bytes_to_image(cloth['cloth'])
-            white_background_cloth = ClothPreprocessor.replace_background_RGBA(
-                                                        cloth_no_background,
-                                                        color=(255,255,255)
-                                                        )
-            new_cloth['cloth'] = white_background_cloth
-            new_clothes.append(new_cloth)
+        new_clothes = []
+
+        if len(clothes) != 0:
+            clothes_params = clothes[0].keys()
+
+            for cloth in clothes:
+                new_cloth = {}
+                cloth_no_background = self.bytes_converter.bytes_to_image(cloth['cloth'])
+                white_background_cloth = ClothPreprocessor.replace_background_RGBA(
+                                                            cloth_no_background,
+                                                            color=(255,255,255)
+                                                            )
+                for cloth_param in clothes_params:
+                    new_cloth[cloth_param] = cloth[cloth_param]
+
+                new_cloth['cloth'] = white_background_cloth
+                new_clothes.append(new_cloth)
         return new_clothes
 
 
@@ -189,7 +218,7 @@ class LocalRecSys:
 
     def sample_outfit(self, outfits, sample_amount):
 
-        scores =torch.tensor([outfit['score']/30 for outfit in outfits])
+        scores = torch.tensor([outfit['score']/30 for outfit in outfits])
         normalized_scores = self.softmax(scores)
 
         top_p_scores = None
@@ -200,6 +229,9 @@ class LocalRecSys:
                 top_p_scores = normalized_scores[:i]
                 top_p_index = i
                 break
+        else:
+            logger.info("Got case top_p not reached")
+            top_p_scores = normalized_scores
 
         new_scores = sum_normalize(top_p_scores)
 
