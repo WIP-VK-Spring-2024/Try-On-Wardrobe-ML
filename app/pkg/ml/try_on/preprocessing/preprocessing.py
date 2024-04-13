@@ -13,13 +13,13 @@ class Resizer:
         self.RESIZE_HEIGHT = 512
 
 
-    def __call__(self, image:Image):
+    def __call__(self, image:Image, color=(0,0,0)):
         """
         image - pil image for resize
         """
  
         image = np.array(image)
-        resized_image = resize_with_pad(image, self.RESIZE_WIDTH, self.RESIZE_HEIGHT)
+        resized_image = resize_with_pad(image, self.RESIZE_WIDTH, self.RESIZE_HEIGHT, color=color)
 
         assert resized_image.shape[:2] == (self.RESIZE_HEIGHT, self.RESIZE_WIDTH )
         
@@ -27,7 +27,7 @@ class Resizer:
         #cv2.imwrite(output_path, resized_image)
 
 
-def resize_with_pad(im, target_width, target_height):
+def resize_with_pad(im, target_width, target_height, color=(0,0,0)):
     '''
     Resize image keeping ratio and using white background.
     '''
@@ -51,7 +51,7 @@ def resize_with_pad(im, target_width, target_height):
     left_pad = int(max(0,(target_width-resize_width)+0.001)/2) # its pad from left side
     right_pad = round(max(0,(target_width-resize_width)+0.001)/2) # if need pad = 3. It will be int(1.5) + round(1.5) = 3
 
-    padded_image = cv2.copyMakeBorder(image_resize, top_pad, bottom_pad, left_pad, right_pad, cv2.BORDER_CONSTANT, value=(0,0,0))
+    padded_image = cv2.copyMakeBorder(image_resize, top_pad, bottom_pad, left_pad, right_pad, cv2.BORDER_CONSTANT, value=color)
  #   padded_image = cv2.cvtColor(padded_image, cv2.COLOR_BGR2RGB)
     return padded_image
 

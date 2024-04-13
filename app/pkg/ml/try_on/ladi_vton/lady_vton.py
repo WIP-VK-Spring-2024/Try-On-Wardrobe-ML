@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 import torch.utils.checkpoint
 import torchvision
-from torchvision import transforms
+from torchvision import transforms as T
 
 
 from PIL import Image
@@ -19,6 +19,7 @@ from diffusers.utils import check_min_version
 from diffusers.utils.import_utils import is_xformers_available
 from tqdm import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModelWithProjection, AutoProcessor
+from torchvision.transforms import functional as tv_func
 
 from app.pkg.ml.try_on.ladi_vton.src.dataset.dresscode import DressCodeDataset
 from app.pkg.ml.try_on.ladi_vton.src.dataset.vitonhd import VitonHDDataset
@@ -27,12 +28,14 @@ from app.pkg.ml.try_on.ladi_vton.src.utils.encode_text_word_embedding import enc
 from app.pkg.ml.try_on.ladi_vton.src.utils.set_seeds import set_seed
 from app.pkg.ml.try_on.ladi_vton.src.vto_pipelines.tryon_pipe import StableDiffusionTryOnePipeline
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
-
+from app.pkg.models.app.image_category import ImageCategory
 from app.pkg.settings import settings
 
 #PROJECT_ROOT = Path(__file__).absolute().parents[1].absolute()
 torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
-os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)# '/usr/src/app/app/pkg/ml/weights'
+os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)
+os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
+
 # Will error if the minimal version of diffusers is not installed. Remove at your own risks.
 check_min_version("0.10.0.dev0")
 
@@ -51,8 +54,8 @@ class LadyVton(torch.nn.Module):
         self.pretrained_model_name_or_path = "stabilityai/stable-diffusion-2-inpainting"
         self.enable_xformers_memory_efficient_attention = True
         self.seed = 42
-        self.num_vstar = 16 # Number of predicted v* images to use
-        self.guidance_scale = 7.5
+        self.num_vstar = 16  # Number of predicted v* images to use
+        self.guidance_scale = 3 # 7.5
         self.num_inference_steps = num_inference_steps
         self.setup_models()
 
@@ -114,36 +117,41 @@ class LadyVton(torch.nn.Module):
         # if error in generator initialization occures, replace self.device to "cuda"
         self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
-
-    def forward(self, input_data):
+    @torch.inference_mode()
+    def forward(self, input_data, single_cloth=True):
        # input_data = self.data_prepr.preprocess_input(input_data)
-    
-        model_img = input_data["image"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
-        mask_img = input_data["inpaint_mask"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
+        if single_cloth:
+            model_img = input_data["image"].to(device=self.device,
+                                               dtype=self.weight_dtype).unsqueeze(0)
+            mask_img = input_data["inpaint_mask"].to(device=self.device,
+                                                     dtype=self.weight_dtype).unsqueeze(0)
 
-        pose_map = input_data["pose_map"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
-        category = input_data["category"]
-        cloth = input_data["cloth"].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
-        im_mask = input_data['im_mask'].to(device=self.device, dtype=self.weight_dtype).unsqueeze(0)
+            pose_map = input_data["pose_map"].to(device=self.device,
+                                                 dtype=self.weight_dtype).unsqueeze(0)
+            category = input_data["category"]
+            cloth = input_data["cloth"].to(device=self.device,
+                                           dtype=self.weight_dtype).unsqueeze(0)
+            im_mask = input_data['im_mask'].to(device=self.device,
+                                               dtype=self.weight_dtype).unsqueeze(0)
 
-        low_cloth = torchvision.transforms.functional.resize(cloth, (256, 192),
-                                                             torchvision.transforms.InterpolationMode.BILINEAR,
-                                                             antialias=True)
-        low_im_mask = torchvision.transforms.functional.resize(im_mask, (256, 192),
-                                                               torchvision.transforms.InterpolationMode.BILINEAR,
-                                                               antialias=True)
-        low_pose_map = torchvision.transforms.functional.resize(pose_map, (256, 192),
-                                                                torchvision.transforms.InterpolationMode.BILINEAR,
-                                                                antialias=True)
+        low_cloth = tv_func.resize(cloth, (256, 192),
+                                   torchvision.transforms.InterpolationMode.BILINEAR,
+                                   antialias=True)
+        low_im_mask = tv_func.resize(im_mask, (256, 192),
+                                     torchvision.transforms.InterpolationMode.BILINEAR,
+                                     antialias=True)
+        low_pose_map = tv_func.resize(pose_map, (256, 192),
+                                      torchvision.transforms.InterpolationMode.BILINEAR,
+                                      antialias=True)
         # print(low_im_mask.shape, low_pose_map.shape, )
         agnostic = torch.cat([low_im_mask, low_pose_map], 1)
         low_grid, theta, rx, ry, cx, cy, rg, cg = self.tps(low_cloth, agnostic)
 
         # We upsample the grid to the original image size and warp the cloth using the predicted TPS parameters
-        highres_grid = torchvision.transforms.functional.resize(low_grid.permute(0, 3, 1, 2),
-                                                                size=(512, 384),
-                                                                interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
-                                                                antialias=True).permute(0, 2, 3, 1)
+        highres_grid = tv_func.resize(low_grid.permute(0, 3, 1, 2),
+                                      size=(512, 384),
+                                      interpolation=torchvision.transforms.InterpolationMode.BILINEAR,
+                                      antialias=True).permute(0, 2, 3, 1)
 
         warped_cloth = F.grid_sample(cloth.to(torch.float32), highres_grid.to(torch.float32), padding_mode='border')
 
@@ -154,7 +162,7 @@ class LadyVton(torch.nn.Module):
         warped_cloth = warped_cloth.to(self.weight_dtype)
 
         # Get the visual features of the in-shop cloths
-        input_image = torchvision.transforms.functional.resize((cloth + 1) / 2, (224, 224),
+        input_image = tv_func.resize((cloth + 1) / 2, (224, 224),
                                                                antialias=True).clamp(0, 1)
         processed_images = self.processor(images=input_image, return_tensors="pt")
         clip_cloth_features = self.vision_encoder(
@@ -165,10 +173,9 @@ class LadyVton(torch.nn.Module):
         word_embeddings = word_embeddings.reshape((word_embeddings.shape[0], self.num_vstar, -1))
 
         category_text = {
-            'dresses': 'a dress',
-            'upper_body': 'an upper body garment',
-            'lower_body': 'a lower body garment',
-
+            ImageCategory.DRESSES: 'a dress',
+            ImageCategory.UPPER_BODY: 'an upper body garment',
+            ImageCategory.LOWER_BODY: 'a lower body garment',
         }
         text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}' for
                 category in [input_data['category']]]#[batch['category']]]
@@ -211,38 +218,6 @@ class LadyVton(torch.nn.Module):
         #         gen_image.save(
         #             os.path.join(save_dir, cat, name), quality=95)
         #generated_images[0].save(save_path)
+        del encoder_hidden_states
+        
         return generated_images[0]
-
-if __name__ == '__main__':
-
-    input_data = {
-        "category": "upper_body",
-
-    }
-
-    # path to (specifically) resized person image
-    human_path = "/usr/src/app/volume/data/resized/human_resized.png"
-    input_data["image_human_orig"] = Image.open(human_path).convert('RGB')
-
-    # path to parsed human. Converts into inpaint_mask
-    parsed_human_path = "/usr/src/app/volume/data/parsed/parsed_human.png"
-    input_data["parse_orig"] = Image.open(parsed_human_path)
-
-    pose_human_im_path = "/usr/src/app/volume/data/pose/posed_human.png"
-    
-    
-    key_points_path = "/usr/src/app/volume/data/pose/keypoints.json"
-    # pose_label = input_data["keypoints_json"]
-    with open(key_points_path, 'r') as f:
-        pose_label = json.load(f)
-    input_data['keypoints_json'] = pose_label
-   
-    # cloth without background
-    cloth_path = "/usr/src/app/volume/data/no_background/shirt_white_back.png"
-    input_data["cloth"] = Image.open(cloth_path)
-
-
-    lv_prep = LadyVtonInputPreprocessor()
-    lv_prep(input_data)
-   
-    lv = LadyVton()

@@ -1,6 +1,7 @@
 """Models of try on model task object."""
 
 import uuid
+from typing import List
 
 from pydantic.fields import Field
 from pydantic import UUID4
@@ -10,6 +11,8 @@ from app.pkg.settings import settings
 from app.pkg.models.app.image_category import ImageCategory
 
 __all__ = [
+    "TryOnClothes",
+    "TryOnImageClothes",
     "TryOnTaskCmd",
     "TryOnResponseCmd",
 ]
@@ -36,18 +39,29 @@ class TryOnFields:
         default=str(settings.API_FILESYSTEM_FOLDER),
     )
 
+class TryOnClothes(BaseTryOnModel):
+    clothes_id: UUID4 = TryOnFields.clothes_id
+    category: ImageCategory = TryOnFields.category
+
+class TryOnListFields:
+    """Model list fields of try on model."""
+
+    clothes: List[TryOnClothes] = Field(description="List of clothes")
+
 class TryOnTaskCmd(BaseTryOnModel):
     user_id: UUID4 = TryOnFields.user_id
-    clothes_id: UUID4 = TryOnFields.clothes_id
     user_image_id: UUID4 = TryOnFields.user_image_id
     user_image_dir: str = TryOnFields.file_dir
+    
+    # TODO: Move dirs to .env
     clothes_dir: str = TryOnFields.file_dir
-    category: ImageCategory = TryOnFields.category
+    clothes: List[TryOnClothes] = TryOnListFields.clothes
 
 
 class TryOnResponseCmd(BaseTryOnModel):
     user_id: UUID4 = TryOnFields.user_id
-    clothes_id: UUID4 = TryOnFields.clothes_id
     user_image_id: UUID4 = TryOnFields.user_image_id
-    try_on_result_id: str = TryOnFields.user_image_id
-    try_on_result_dir: str = TryOnFields.file_dir
+
+    # TODO: Move dirs to .env
+    try_on_dir: str = TryOnFields.file_dir
+    try_on_id: UUID4 = TryOnFields.clothes_id

@@ -36,6 +36,7 @@ class AmazonS3Service:
             res = self.s3.upload_fileobj(file, self.s3_bucket_name, file_path, ExtraArgs=extra_args)
             logger.info("Uploaded file to S3, response: %s", res)
         except ClientError as e:
+            logger.error("Error for file path: %s, error: %s", file_path, e)
             raise BaseAPIException(message=f"Failed to upload file to S3: {e}")
         
     def delete(self, file_name: str, folder: str = None) -> None:
@@ -44,6 +45,7 @@ class AmazonS3Service:
             res = self.s3.delete_object(Bucket=self.s3_bucket_name, Key=file_path)
             logger.info("Deleted file from S3, response: %s", res)
         except ClientError as e:
+            logger.error("Error for file path: %s, error: %s", file_path, e)
             raise BaseAPIException(message=f"Failed to delete file from S3: {e}")
         
     def read(self, file_name: str, folder: str = None) -> BinaryIO:
@@ -54,6 +56,7 @@ class AmazonS3Service:
             buffer = BytesIO(file_content)
             return buffer
         except ClientError as e:
+            logger.error("Error for file path: %s, error: %s", file_path, e)
             raise BaseAPIException(message=f"Failed to read file from S3: {e}")
 
 

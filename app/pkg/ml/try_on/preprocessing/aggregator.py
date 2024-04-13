@@ -69,8 +69,12 @@ class HumanProcessor(BaseProcessor):
         """
         image = self.bytes_converter.bytes_to_image(image_bytes)
 
-        human_resized = self.resizer(image)
+        result = self.process(image)
 
+        return result                
+
+    def process(self, image:Image):
+        human_resized = self.resizer(image, color=(255,255,255))
         result = {}
         pose_out, keypoints_json_dict = self.model_pose_estim(human_resized)
         result["pose"] = self.bytes_converter.image_to_bytes(pose_out)
@@ -79,8 +83,7 @@ class HumanProcessor(BaseProcessor):
         parsed_human = self.model_human_parsing(human_resized)
         result["parse_orig"] = self.bytes_converter.image_to_bytes(parsed_human)
         result["image_human_orig"] = self.bytes_converter.image_to_bytes(human_resized)
-        return result                
-
+        return result
 
 if __name__ == '__main__':
     bc = BytesConverter()

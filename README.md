@@ -23,6 +23,7 @@ docker compose -f docker-compose-model.yml up -d --build --force-recreate
 ```shell
 wget /link/to/weights/archieve -O weights.zip \
 && source .env \
+&& mkdir $ML__WEIGHTS_PATH \
 && unzip weights.zip -d $ML__WEIGHTS_PATH\
 && rm weights.zip
 ```
