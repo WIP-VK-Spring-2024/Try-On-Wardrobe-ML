@@ -170,6 +170,8 @@ class ML(_Settings):
     TRY_ON_RESPONSE_QUEUE: str = "try_on_response"
     CUT_TASK_QUEUE: str = "cut"
     CUT_RESPONSE_QUEUE: str = "cut_response"
+    RECSYS_TASK_QUEUE: str = "recsys"
+    RECSYS_RESPONSE_QUEUE: str ="recsys_response"
 
 class Settings(_Settings):
     """APP settings."""

@@ -5,5 +5,10 @@ from app.pkg.models.app.cut import (
     ClothesTaskClassification,
     ClothesRespClassification,
 )
+from app.pkg.models.app.recsys import (
+    RecSysClothes,
+    RecSysTaskCmd,
+    RecSysResponseCmd,
+)
 from app.pkg.models.app.amazon_s3 import ResponseMessage
 from app.pkg.models.app.image_category import ImageCategory
