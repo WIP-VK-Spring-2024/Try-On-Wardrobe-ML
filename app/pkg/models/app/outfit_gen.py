@@ -27,7 +27,7 @@ class OutfitGenFields:
     """Model fields of outfit gen model."""
 
     user_id: UUID4 = Field(description="User id.", example=uuid.uuid4())
-    prompt: str = Field(description="Prompt for outfit gen.", example="Make outfit for dating.")
+    prompt: str = Field(description="Prompt for outfit gen.", example="Make outfit for dating.", default="")
     amount: int = Field(description="Prompt for outfit gen.", example=10, default=10)
 
     clothes_id: UUID4 = Field(description="Clothes id.", example=uuid.uuid4())

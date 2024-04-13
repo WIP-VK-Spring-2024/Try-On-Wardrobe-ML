@@ -46,7 +46,7 @@ class OutfitGenWorker:
 
             data = self.read_clothes(
                 message.clothes,
-                folder=settings.CLOTHES_DIR,
+                folder=settings.CUT_DIR,
             )
 
             logger.info("Starting try on pipeline")
