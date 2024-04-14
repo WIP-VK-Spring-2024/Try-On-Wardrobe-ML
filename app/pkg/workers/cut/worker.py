@@ -62,7 +62,7 @@ class CutWorker:
             # Save result
             # TODO: check uuid to str
             res_file_name = message.clothes_id
-            res_file_dir = settings.ML.CUT_DIR
+            res_file_dir = settings.CUT_DIR
 
             self.file_service.upload(
                 file=cutted_clothes,

@@ -51,6 +51,7 @@ class CutFields:
     tags: List[str] = Field(
         description="Image tags.",
         example=["outfit"],
+        default=[],
     )
     styles: List[str] = Field(
         description="Image tag.",
