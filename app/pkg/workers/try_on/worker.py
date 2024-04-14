@@ -1,11 +1,12 @@
 """Try on worker for read task queue."""
 
-from typing import BinaryIO
+from io import BytesIO
+from typing import BinaryIO, List
 
 from app.internal.repository.rabbitmq.try_on_task import TryOnTaskRepository
 from app.internal.repository.rabbitmq.try_on_response import TryOnRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import TryOnResponseCmd, ImageCategory
+from app.pkg.models import TryOnResponseCmd, TryOnClothes, ImageCategory
 from app.pkg.logger import get_logger
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
@@ -53,25 +54,23 @@ class TryOnWorker:
                 folder=message.user_image_dir,
             )
 
-            clothes_image = self.file_service.read(
-                file_name=message.clothes_id,
-                folder=message.clothes_dir,
-            )
+            clothes_images = self.read_clothes(message.clothes, folder=settings.CLOTHES_DIR)
 
             logger.info(
-                "Starting try on pipeline clothes id: [%s]",
-                message.clothes_id,
+                "Starting try on pipeline, %s clothes: [%s]",
+                len(message.clothes),
+                message.clothes,
             )
             # Model pipeline           
             try_on = self.pipeline(
-                category=message.category,
-                clothes_image=clothes_image,
                 user_image=user_image,
+                clothes=message.clothes,
+                clothes_images=clothes_images,
             )
 
             # Save result
-            res_file_name = f"{message.clothes_id}"
-            res_file_dir = f"{settings.ML.TRY_ON_DIR}/{message.user_image_id}"
+            res_file_name = f"{message.clothes[0].clothes_id}"
+            res_file_dir = f"{settings.TRY_ON_DIR}/{message.user_image_id}"
 
             self.file_service.upload(
                 file=try_on,
@@ -86,16 +85,33 @@ class TryOnWorker:
             )
             cmd = TryOnResponseCmd(
                 **message.dict(),
-                try_on_result_id=res_file_name,
-                try_on_result_dir=res_file_dir,
+                try_on_id=res_file_name,
+                try_on_dir=res_file_dir,
             )
             await self.resp_repository.create(cmd=cmd)
 
-    def pipeline(self, category: ImageCategory, clothes_image: BinaryIO, user_image: BinaryIO) -> BinaryIO:
-        """ Try on model pipeline
-        Attributes:
-            category: ImageCategory, category of clothes image to try on
-            clothes_image: BinaryIO, cutted image for processing
+    def read_clothes(self, clothes: List[TryOnClothes], folder: str) -> List[BytesIO]:
+        """Read clothes from file service"""
+        images = []
+        for clothe in clothes:
+            images.append(
+                self.file_service.read(
+                    file_name=clothe.clothes_id,
+                    folder=folder,
+                ),
+            )
+        return images
+
+    def pipeline(
+        self,
+        user_image: BinaryIO,
+        clothes: List[TryOnClothes],
+        clothes_images: List[BytesIO],
+    ) -> BytesIO:
+        """Try on model pipeline
+        
+        Args:
+            clothes_images: List[TryOnImageClothes], list of clothes images to try on
             user_image: BinaryIO, user image for processing
         """
         # Human processing
@@ -103,13 +119,18 @@ class TryOnWorker:
         logger.debug("End human processing, result: [%s]", processed_user["parse_orig"])
         
         # Try on
-        processed_user.update(
+        try_on_clothes = [
             {
-                "category": category,
-                "cloth": clothes_image,
-            }
+                "category": ImageCategory(clothe.category),
+                "cloth": image,
+            } 
+            for clothe, image in zip(clothes, clothes_images)
+        ]
+
+        try_on = self.try_on_model.try_on_set(
+            human=processed_user,
+            clothes=try_on_clothes,
         )
-        try_on = self.try_on_model(processed_user)
         logger.info("End try on, result: [%s]", try_on)
 
         return try_on

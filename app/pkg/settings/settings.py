@@ -46,37 +46,6 @@ class Resource(_Settings):
         raise NotImplementedError
 
 
-class Postgresql(Resource):
-    """Postgresql settings."""
-
-    #: str: Postgresql host.
-    HOST: str = "localhost"
-    #: PositiveInt: positive int (x > 0) port of postgresql.
-    PORT: PositiveInt = 5432
-    #: str: Postgresql user.
-    USER: str = "postgres"
-    #: SecretStr: Postgresql password.
-    PASSWORD: SecretStr = SecretStr("postgres")
-    #: str: Postgresql database name.
-    DATABASE_NAME: str = "postgres"
-
-    #: str: Concatenation all settings for postgresql in one string. (DSN)
-    #  Builds in `root_validator` method.
-    DSN: Optional[str] = None
-
-    @root_validator(pre=True)
-    def build_dsn(cls, values: dict):  # pylint: disable=no-self-argument
-        values["DSN"] = PostgresDsn.build(
-            scheme="postgresql",
-            user=f"{values.get('USER')}",
-            password=f"{urllib.parse.quote_plus(values.get('PASSWORD'))}",
-            host=f"{values.get('HOST')}",
-            port=f"{values.get('PORT')}",
-            path=f"/{values.get('DATABASE_NAME')}",
-        )
-        return values
-
-
 class RabbitMQ(Resource):
     """RabbitMQ settings."""
 
@@ -102,17 +71,7 @@ class RabbitMQ(Resource):
 
 
 class Resources(_Settings):
-    POSTGRES: Postgresql
     RABBITMQ: RabbitMQ
-
-
-class Client(_Settings):
-    URL: AnyUrl
-    TOKEN: SecretStr
-
-
-class Clients(_Settings):
-    WARDROBE_API: Client
 
 
 class APIServer(_Settings):
@@ -163,13 +122,13 @@ class ML(_Settings):
 
     #: pathlib.Path: Path of models weights.
     WEIGHTS_PATH: pathlib.Path = pathlib.Path("./app/pkg/ml/weights")
-    TRY_ON_DIR: str = "try_on"
-    CUT_DIR: str = "cut"
 
     TRY_ON_TASK_QUEUE: str = "try_on"
     TRY_ON_RESPONSE_QUEUE: str = "try_on_response"
     CUT_TASK_QUEUE: str = "cut"
     CUT_RESPONSE_QUEUE: str = "cut_response"
+    OUTFIT_GEN_TASK_QUEUE: str = "outfit_gen"
+    OUTFIT_GEN_RESPONSE_QUEUE: str = "outfit_gen_response"
 
 class Settings(_Settings):
     """APP settings."""
@@ -178,13 +137,16 @@ class Settings(_Settings):
 
     RESOURCES: Resources
 
-    CLIENTS: Clients
-
     LOGGER: Logging
 
     AWS: AmazonS3
 
     ML: ML
+
+    # DIRS
+    CLOTHES_DIR: str = "clothes"
+    TRY_ON_DIR: str = "try_on"
+    CUT_DIR: str = "cut"
 
     API_FILESYSTEM_FOLDER: pathlib.Path = pathlib.Path("./volume/data")
 

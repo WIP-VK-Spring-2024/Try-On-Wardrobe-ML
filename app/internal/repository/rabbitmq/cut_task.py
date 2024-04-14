@@ -1,4 +1,4 @@
-"""Repository for cut model response queue."""
+"""Repository for cut model task queue."""
 from typing import AsyncGenerator
 
 from app.internal.repository.rabbitmq.base_repository import BaseRepository
@@ -6,7 +6,7 @@ from app.pkg.models import CutTaskCmd
 
 
 class CutTaskRepository(BaseRepository):
-    """Repository for cut model response queue."""
+    """Repository for cut model task queue."""
 
     QUEUE_NAME: str = "cut"
 

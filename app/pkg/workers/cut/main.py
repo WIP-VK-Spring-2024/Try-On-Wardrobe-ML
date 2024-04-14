@@ -7,6 +7,7 @@ from app.internal.repository.rabbitmq.cut_response import CutRespRepository
 from app.pkg.workers.cut.worker import CutWorker
 from app.internal.services import AmazonS3Service
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
+from app.pkg.ml.autotags.autotag import AutoTagger
 from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
@@ -21,12 +22,14 @@ def start_worker():
     file_service = AmazonS3Service()
 
     clothes_model = ClothProcessor()
+    autotag_model = AutoTagger()
 
     model_worker = CutWorker(
         task_repository=task_repository,
         resp_repository=resp_repository,
         file_service=file_service,
         clothes_model=clothes_model,
+        autotag_model=autotag_model,
     )
     logger.info("Successfuly initializated.")
     asyncio.run(model_worker.listen_queue())

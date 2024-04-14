@@ -30,7 +30,7 @@ from app.pkg.ml.try_on.ladi_vton.src.utils.encode_text_word_embedding import enc
 from app.pkg.ml.try_on.ladi_vton.src.utils.set_seeds import set_seed
 from app.pkg.ml.try_on.ladi_vton.src.vto_pipelines.tryon_pipe import StableDiffusionTryOnePipeline
 from app.pkg.ml.try_on.ladi_vton.src.utils.posemap import kpoint_to_heatmap
-
+from app.pkg.models.app.image_category import ImageCategory
 
 # map for human parsing block
 label_map={ 
@@ -53,7 +53,9 @@ label_map={
     "bag": 16,
     "scarf": 17,
 }
-clothes_types = ['dresses', 'upper_body','lower_body']
+clothes_types = [ImageCategory.DRESSES,
+                 ImageCategory.UPPER_BODY,
+                 ImageCategory.LOWER_BODY]
 
 class LadyVtonInputPreprocessor:
     def __init__(self,):
@@ -69,15 +71,22 @@ class LadyVtonInputPreprocessor:
         ])
         self.radius = 5
 
-
     def __call__(self, input_data):
         # TODO: Insert here clever resize
         # because it won't work idealy
-        input_data['image'] = self.preprocess_human_orig(input_data['image_human_orig'])
-        input_data['cloth'] = self.preprocess_cloth(input_data['cloth'])
-        self.preprocess_human_parsing(input_data)
-        
+        self.prepare_human(input_data)
+        self.prepare_cloth(input_data)
         return input_data
+
+
+    def prepare_human(self, input_data):
+        input_data['image'] = self.preprocess_human_orig(input_data['image_human_orig'])
+        self.preprocess_human_parsing(input_data)
+
+
+    def prepare_cloth(self, input_data):
+        input_data['cloth'] = self.preprocess_cloth(input_data['cloth'])
+
 
     def preprocess_human_orig(self, image):
         # human image preprocessing
@@ -119,7 +128,7 @@ class LadyVtonInputPreprocessor:
         parser_mask_changeable = (parse_array == label_map["background"]).astype(np.float32)
 
         arms = (parse_array == 14).astype(np.float32) + (parse_array == 15).astype(np.float32)
-        if  cloth_type == 'dresses':
+        if  cloth_type == ImageCategory.DRESSES:
             label_cat = 7
             parse_cloth = (parse_array == 7).astype(np.float32)
             parse_mask = (parse_array == 7).astype(np.float32) + \
@@ -127,7 +136,7 @@ class LadyVtonInputPreprocessor:
                             (parse_array == 13).astype(np.float32)
             parser_mask_changeable += np.logical_and(parse_array, np.logical_not(parser_mask_fixed))
 
-        elif cloth_type == 'upper_body':
+        elif cloth_type == ImageCategory.UPPER_BODY:
             label_cat = 4
             parse_cloth = (parse_array == 4).astype(np.float32)
             parse_mask = (parse_array == 4).astype(np.float32)
@@ -136,7 +145,7 @@ class LadyVtonInputPreprocessor:
                                     (parse_array == label_map["pants"]).astype(np.float32)
 
             parser_mask_changeable += np.logical_and(parse_array, np.logical_not(parser_mask_fixed))
-        elif cloth_type == 'lower_body':
+        elif cloth_type == ImageCategory.LOWER_BODY:
             label_cat = 6
             parse_cloth = (parse_array == 6).astype(np.float32)
             parse_mask = (parse_array == 6).astype(np.float32) + \
@@ -245,13 +254,13 @@ class LadyVtonInputPreprocessor:
 
             hands = np.logical_and(np.logical_not(im_arms), arms)
 
-            if cloth_type in ['dresses', 'upper_body']:
+            if cloth_type in [ImageCategory.DRESSES, ImageCategory.UPPER_BODY]:
                 parse_mask += im_arms
                 parser_mask_fixed += hands
 
         # delete neck
         parse_head_2 = torch.clone(parse_head)
-        if cloth_type in ['dresses', 'upper_body']:
+        if cloth_type in [ImageCategory.DRESSES, ImageCategory.UPPER_BODY]:
                 data = copy.deepcopy(input_data["keypoints_json"])
                 points = []
                 points.append(np.multiply(tuple(data['keypoints'][2][:2]), self.height / 512.0))
@@ -282,40 +291,4 @@ class LadyVtonInputPreprocessor:
         parse_mask_total = parse_mask_total.numpy()
         parse_mask_total = parse_array * parse_mask_total
         parse_mask_total = torch.from_numpy(parse_mask_total)
-
-
-if __name__ == '__main__':
-    # try_on = LadyVton()
-
-    input_data = {
-        "category": "upper_body",
-
-    }
-
-    # path to (specifically) resized person image
-    human_path = "/usr/src/app/volume/data/resized/human_resized.png"
-    input_data["image_human_orig"] = Image.open(human_path).convert('RGB')
-
-    # path to parsed human. Converts into inpaint_mask
-    parsed_human_path = "/usr/src/app/volume/data/parsed/parsed_human.png"
-    input_data["parse_orig"] = Image.open(parsed_human_path)
-
-    pose_human_im_path = "/usr/src/app/volume/data/pose/posed_human.png"
-    
-    
-    key_points_path = "/usr/src/app/volume/data/pose/keypoints.json"
-    # pose_label = input_data["keypoints_json"]
-    with open(key_points_path, 'r') as f:
-        pose_label = json.load(f)
-    input_data['keypoints_json'] = pose_label
-   
-    # cloth without background
-    cloth_path = "/usr/src/app/volume/data/no_background/shirt_white_back.png"
-    input_data["cloth"] = Image.open(cloth_path)
-
-
-    lv_prep = LadyVtonInputPreprocessor()
-    new_input_data = lv_prep(input_data)
-    for i,j in new_input_data.items():
-        print(i, type(j))
 
