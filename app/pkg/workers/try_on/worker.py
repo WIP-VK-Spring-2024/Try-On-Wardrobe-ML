@@ -69,7 +69,11 @@ class TryOnWorker:
             )
 
             # Save result
-            res_file_name = f"{message.clothes[0].clothes_id}"
+            if message.outfit_id:
+                res_file_name = str(message.outfit_id)
+            else:
+                res_file_name = str(message.clothes[0].clothes_id)
+
             res_file_dir = f"{settings.TRY_ON_DIR}/{message.user_image_id}"
 
             self.file_service.upload(
