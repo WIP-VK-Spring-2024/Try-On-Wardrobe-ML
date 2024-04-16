@@ -26,7 +26,7 @@ class TryOnFields:
     """Model fields of try on model."""
 
     user_id: UUID4 = Field(description="User id.", example=uuid.uuid4())
-    outfit_id: UUID4 = Field(description="Outfit id.", example=uuid.uuid4())
+    outfit_id: UUID4 = Field(description="Outfit id.", example=uuid.uuid4(), default=uuid.uuid4())
     user_image_id: UUID4 = Field(description="User photo id.", example=uuid.uuid4())
     clothes_id: UUID4 = Field(description="Clothes id.", example=uuid.uuid4())
     category: ImageCategory = Field(
