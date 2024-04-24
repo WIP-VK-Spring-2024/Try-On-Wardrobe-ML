@@ -56,7 +56,7 @@ class LadyVtonAggregator:
 
     @torch.inference_mode()
     def batch_try_on(self,
-                     input_data: Dict[str, io.BytesIO],
+                     human: Dict[str, io.BytesIO],
                      clothes: List[Dict[str, Union[io.BytesIO, ImageCategory]]]) -> io.BytesIO:
         """
         Starts try on process
@@ -76,19 +76,42 @@ class LadyVtonAggregator:
 
         """
 
+        self.prepare_human(human, to_preprocessor=False)
+
+        input_data = {
+            'image':[],
+            'inpaint_mask':[],
+            'pose_map':[],
+            'category':[],
+            'cloth':[],
+            'im_mask':[],
+            'image_human_orig':[],
+        }
+
         for cloth in clothes:
             self.prepare_cloth(cloth)
+        
+            human_per_cloth = deepcopy(human)
+            human_per_cloth['category'] = cloth["category"]
+            self.preprocessor.prepare_human(human_per_cloth)
 
-        self.prepare_human(input_data)
+            input_data['cloth'].append(cloth['cloth'])
+            input_data['image'].append(human_per_cloth['image'])
+            input_data['inpaint_mask'].append(human_per_cloth['inpaint_mask'])
+            input_data['pose_map'].append(human_per_cloth['pose_map'])
+            input_data['category'].append(human_per_cloth['category'])
+            input_data['im_mask'].append(human_per_cloth['im_mask'])
+            input_data['image_human_orig'].append(human_per_cloth['image_human_orig'])
+            
 
-        input_data['cloth'] = clothes
+        #input_data['cloth'] = clothes
 
         result_images = self.model.forward(input_data, single_cloth=False)
         
         fixed_face_results = []
-        for result_image in result_images:
+        for i, result_image in enumerate(result_images):
             fixed_face_image = self.face_fix_model.fix_face(
-                orig_image=input_data["image_human_orig"],
+                orig_image=input_data["image_human_orig"][i],
                 result_image=result_image)
             fixed_im_bytes = self.bytes_converter.image_to_bytes(fixed_face_image)
             fixed_face_results.append(fixed_im_bytes)
@@ -129,10 +152,10 @@ class LadyVtonAggregator:
         # find a cloth with lower body
         for cloth in clothes:
            # assert isinstance(cloth, ImageCategory)
-            if cloth["category"] == ImageCategory.UPPER_BODY:
-                logger.info("[TryOnSet] Found upper body cloth")
+            if cloth["category"] == ImageCategory.UPPER_BODY or cloth["category"] == ImageCategory.DRESSES:
+                logger.info("[TryOnSet] Found upper|dress body cloth")
                 upper_human = deepcopy(human)
-                upper_human['category'] = ImageCategory.UPPER_BODY
+                upper_human['category'] = cloth["category"]
                 self.preprocessor.prepare_human(upper_human)
 
                 input_data = self.get_try_on_data(human=upper_human, cloth=cloth)
@@ -145,7 +168,7 @@ class LadyVtonAggregator:
             if cloth["category"] == ImageCategory.LOWER_BODY:
                 logger.info("[TryOnSet] Found lower body cloth")
                 lower_human = deepcopy(human)
-                lower_human['category'] = ImageCategory.LOWER_BODY
+                lower_human['category'] = cloth["category"]
                 lower_human['image_human_orig'] = result_image # making the input, output of previous step
                 self.preprocessor.prepare_human(lower_human)
                 input_data = self.get_try_on_data(human=lower_human, cloth=cloth)

@@ -129,7 +129,7 @@ class LadyVton(torch.nn.Module):
 
     @torch.inference_mode()
     def forward(self, input_data, single_cloth=True):
-       # input_data = self.data_prepr.preprocess_input(input_data)
+
         if single_cloth:
             model_img = input_data["image"].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
@@ -149,13 +149,9 @@ class LadyVton(torch.nn.Module):
             mask_img = self.to_batch(input_data["inpaint_mask"])
 
             pose_map = self.to_batch(input_data["pose_map"])
-
             category = input_data["category"]
-            cloth = input_data["cloth"].to(device=self.device,
-                                           dtype=self.weight_dtype).unsqueeze(0)
-            im_mask = input_data['im_mask'].to(device=self.device,
-                                               dtype=self.weight_dtype).unsqueeze(0)
-
+            cloth = self.to_batch(input_data["cloth"])
+            im_mask = self.to_batch(input_data['im_mask'])
 
 
         low_cloth = tv_func.resize(cloth, (256, 192),
