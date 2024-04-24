@@ -1,13 +1,16 @@
 import os
+from enum import Enum
 
 import cv2 
 import numpy as np
 from skimage import io
 import torch
 from PIL import Image
+from torch import nn
 
 from app.pkg.ml.try_on.preprocessing.RMBG.briarmbg import BriaRMBG
 from app.pkg.ml.try_on.preprocessing.RMBG.utilities import preprocess_image, postprocess_image
+from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
 
 from app.pkg.settings import settings
 
@@ -15,17 +18,31 @@ torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
 os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)
 os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
 
-class ClothPreprocessor:
-    def __init__(self):
-        self.net = BriaRMBG.from_pretrained("briaai/RMBG-1.4")
 
+class BackgroundModels(Enum):
+    BriaRMBG = "BriaRMBG"
+    SegFormerB3 = "sayeed99/segformer_b3_clothes"
+
+
+class ClothPreprocessor:
+    def __init__(self, model_type):
+        self.model_type = model_type
+ 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.net.to(self.device)
+
+        if model_type == BackgroundModels.SegFormerB3:
+            self.net = AutoModelForSemanticSegmentation.from_pretrained("sayeed99/segformer_b3_clothes")
+            self.processor = SegformerImageProcessor.from_pretrained("sayeed99/segformer_b3_clothes")
+
+        if model_type == BackgroundModels.BriaRMBG:
+            self.net = BriaRMBG.from_pretrained("briaai/RMBG-1.4")
+
+        self.net = self.net.to(self.device)
 
         # prepare input
         self.model_input_size = [1024,1024]
     
-    def remove_background(self, image:Image,
+    def remove_background(self, pil_image:Image,
                           save_mask=False,
                           )->dict:
         """
@@ -35,22 +52,43 @@ class ClothPreprocessor:
         Returns {"cloth_no_background":no_bg_image,
                  "cloth_mask": pil_im}
         """
-        image = np.array(image.convert('RGB')) 
+        image = np.array(pil_image.convert('RGB')) 
         # convert('RGB') is for images with h,w,4 shape
         
         orig_im_size = image.shape[0:2]
-
-        prep_image = preprocess_image(image, self.model_input_size)
+        
 
         with torch.no_grad(): 
             # inference
-            result = self.net(prep_image.to(self.device))
-            # post process
-            result_image = postprocess_image(result[0][0], orig_im_size)
-            # clear memory
-            del result        
+            
+            if self.model_type == BackgroundModels.BriaRMBG:
+                prep_image = preprocess_image(image, self.model_input_size)
 
-        pil_im = Image.fromarray(result_image[:,:])
+                result = self.net(prep_image.to(self.device))
+                # post process
+                cloth_mask = postprocess_image(result[0][0], orig_im_size)
+                del result
+
+            if self.model_type == BackgroundModels.SegFormerB3:
+                inputs = self.processor(image, return_tensors="pt").to("cuda")
+                outputs = self.net(**inputs)
+                logits = outputs.logits.cpu().detach()
+
+                upsampled_logits = nn.functional.interpolate(
+                    logits,
+                    size=pil_image.size[::-1],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+
+                pred_seg = upsampled_logits.argmax(dim=1)[0]
+
+                cloth_mask = (pred_seg!=0).numpy()
+
+                # clear memory
+                del outputs        
+
+        pil_im = Image.fromarray(cloth_mask)
 
         # if background_color:
         #     no_bg_image = Image.new("RGB", pil_im.size, background_color)
@@ -130,14 +168,3 @@ class ClothPreprocessor:
         im_no_background = self.remove_background(cloth_im, save_mask=False)["cloth_no_background"]
         crop_and_pad = self.crop_and_pad(im_no_background)
         return crop_and_pad
-
-
-if __name__ == '__main__':
-    cp = ClothPreprocessor()
-    orig_image = Image.open('/usr/src/app/data/example/t_shirt.png')
-
-    res = cp(orig_image)
-    res.save("/usr/src/app/volume/data/no_background/cloth_prepr_ex.png")
-    # im_no_background = cp.remove_background(orig_image)
-
-    # cp.crop_and_pad(im_no_background, "/usr/src/app/volume/data/no_background/t_shirt_rc.png")
