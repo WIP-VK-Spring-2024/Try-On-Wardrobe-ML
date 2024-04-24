@@ -117,6 +117,16 @@ class LadyVton(torch.nn.Module):
         # if error in generator initialization occures, replace self.device to "cuda"
         self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
+    def to_batch(self, tensors):
+        batch = (
+            torch.concatenate([tensor\
+                               .to(device=self.device, dtype=self.weight_dtype)\
+                               .unsqueeze(0)\
+                               for tensor in tensors],
+                               dim=0)
+        )
+        return batch
+
     @torch.inference_mode()
     def forward(self, input_data, single_cloth=True):
        # input_data = self.data_prepr.preprocess_input(input_data)
@@ -133,6 +143,20 @@ class LadyVton(torch.nn.Module):
                                            dtype=self.weight_dtype).unsqueeze(0)
             im_mask = input_data['im_mask'].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
+
+        else:
+            model_img = self.to_batch(input_data["image"])
+            mask_img = self.to_batch(input_data["inpaint_mask"])
+
+            pose_map = self.to_batch(input_data["pose_map"])
+
+            category = input_data["category"]
+            cloth = input_data["cloth"].to(device=self.device,
+                                           dtype=self.weight_dtype).unsqueeze(0)
+            im_mask = input_data['im_mask'].to(device=self.device,
+                                               dtype=self.weight_dtype).unsqueeze(0)
+
+
 
         low_cloth = tv_func.resize(cloth, (256, 192),
                                    torchvision.transforms.InterpolationMode.BILINEAR,
@@ -177,9 +201,14 @@ class LadyVton(torch.nn.Module):
             ImageCategory.UPPER_BODY: 'an upper body garment',
             ImageCategory.LOWER_BODY: 'a lower body garment',
         }
-        text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}' for
-                category in [input_data['category']]]#[batch['category']]]
+        if single_cloth:
+            prompt_category = [input_data['category']]
+        else:
+            prompt_category = input_data['category']
 
+        text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}' for
+                    category in prompt_category]
+            
         # Tokenize text
         tokenized_text = self.tokenizer(text, max_length=self.tokenizer.model_max_length, padding="max_length",
                                    truncation=True, return_tensors="pt").input_ids
@@ -220,4 +249,7 @@ class LadyVton(torch.nn.Module):
         #generated_images[0].save(save_path)
         del encoder_hidden_states
         
-        return generated_images[0]
+        if single_cloth:
+            return generated_images[0]
+        else:
+            return generated_images

@@ -54,6 +54,46 @@ class LadyVtonAggregator:
             result_image=result_image)
         return self.bytes_converter.image_to_bytes(fixed_face_image)
 
+    @torch.inference_mode()
+    def batch_try_on(self,
+                     input_data: Dict[str, io.BytesIO],
+                     clothes: List[Dict[str, Union[io.BytesIO, ImageCategory]]]) -> io.BytesIO:
+        """
+        Starts try on process
+        
+        Args:
+            input_data - Dict[str, Union[io.BytesIO, ImageCategory]] - dict, contained folowing structure:
+                {
+                "image_human_orig":io.BytesIO,  # - image with human
+                "parsed_human":io.BytesIO,  # - image with parsed human 
+                "keypoints_json":io.BytesIO, # human keypoints json
+                }
+            clothes - List[Dict[str, Union[io.BytesIO, ImageCategory]]] with format:
+                {
+                "cloth":io.BytesIO # cloth (without background) image bytes
+                "category":ImageCategory, # one of ['dresses', 'upper_body','lower_body']
+                }        
+
+        """
+
+        for cloth in clothes:
+            self.prepare_cloth(cloth)
+
+        self.prepare_human(input_data)
+
+        input_data['cloth'] = clothes
+
+        result_images = self.model.forward(input_data, single_cloth=False)
+        
+        fixed_face_results = []
+        for result_image in result_images:
+            fixed_face_image = self.face_fix_model.fix_face(
+                orig_image=input_data["image_human_orig"],
+                result_image=result_image)
+            fixed_im_bytes = self.bytes_converter.image_to_bytes(fixed_face_image)
+            fixed_face_results.append(fixed_im_bytes)
+        return fixed_face_results
+
 
     @torch.inference_mode()
     def try_on_set(self, human: Dict[str, io.BytesIO],
