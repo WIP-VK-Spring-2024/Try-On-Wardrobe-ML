@@ -57,7 +57,7 @@ class TryOnWorker:
                     file_name=message.user_image_id,
                     folder=message.user_image_dir,
                 )
-                clothes_images = self.read_clothes(message.clothes, folder=settings.CLOTHES_DIR)
+                clothes_images = self.read_clothes(message.clothes, folder=settings.CUT_DIR)
             except AmazonS3Error as exc:
                 logger.error("Amazon s3 read error, clothes: [%s], error: [%s]", message.clothes, exc)
                 cmd = TryOnResponseCmd(
