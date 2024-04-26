@@ -6,7 +6,7 @@ from io import BytesIO
 import boto3
 from botocore.exceptions import ClientError
 
-from app.pkg.models.base.exception import BaseAPIException
+from app.pkg.models.exceptions.amazon_s3 import AmazonS3NotFoundError, AmazonS3UploadError
 from app.pkg.settings import settings
 from app.pkg.logger import get_logger
 
@@ -37,7 +37,7 @@ class AmazonS3Service:
             logger.info("Uploaded file to S3, response: %s", res)
         except ClientError as e:
             logger.error("Error for file path: %s, error: %s", file_path, e)
-            raise BaseAPIException(message=f"Failed to upload file to S3: {e}")
+            raise AmazonS3UploadError from e
         
     def delete(self, file_name: str, folder: str = None) -> None:
         file_path = self.get_file_path(file_name, folder)
@@ -46,7 +46,7 @@ class AmazonS3Service:
             logger.info("Deleted file from S3, response: %s", res)
         except ClientError as e:
             logger.error("Error for file path: %s, error: %s", file_path, e)
-            raise BaseAPIException(message=f"Failed to delete file from S3: {e}")
+            raise AmazonS3NotFoundError from e
         
     def read(self, file_name: str, folder: str = None) -> BinaryIO:
         file_path = self.get_file_path(file_name, folder)
@@ -57,7 +57,7 @@ class AmazonS3Service:
             return buffer
         except ClientError as e:
             logger.error("Error for file path: %s, error: %s", file_path, e)
-            raise BaseAPIException(message=f"Failed to read file from S3: {e}")
+            raise AmazonS3NotFoundError from e
 
 
     def read_and_save(self, file_name: str, folder: str = None) -> Tuple[BinaryIO, str]:

@@ -3,14 +3,17 @@
 from io import BytesIO
 from typing import BinaryIO, List
 
+from fastapi import status
+
 from app.internal.repository.rabbitmq.try_on_task import TryOnTaskRepository
 from app.internal.repository.rabbitmq.try_on_response import TryOnRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import TryOnResponseCmd, TryOnClothes, ImageCategory
+from app.pkg.models import TryOnTaskCmd, TryOnResponseCmd, TryOnClothes, ImageCategory
 from app.pkg.logger import get_logger
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
 from app.pkg.ml.try_on.lady_vton import LadyVtonAggregator
+from app.pkg.models.exceptions.amazon_s3 import AmazonS3Error
 from app.pkg.settings import settings
 
 logger = get_logger(__name__)
@@ -49,46 +52,45 @@ class TryOnWorker:
         async for message in self.task_repository.read():
             logger.info("New message [%s]", message)
 
-            user_image = self.file_service.read(
-                file_name=message.user_image_id,
-                folder=message.user_image_dir,
-            )
-
-            clothes_images = self.read_clothes(message.clothes, folder=settings.CLOTHES_DIR)
+            try:
+                user_image = self.file_service.read(
+                    file_name=message.user_image_id,
+                    folder=message.user_image_dir,
+                )
+                clothes_images = self.read_clothes(message.clothes, folder=settings.CLOTHES_DIR)
+            except AmazonS3Error as exc:
+                logger.error("Amazon s3 read error, clothes: [%s], error: [%s]", message.clothes, exc)
+                cmd = TryOnResponseCmd(
+                    **message.dict(),
+                    status_code=exc.status_code,
+                    message=exc.message,
+                )
+                await self.resp_repository.create(cmd=cmd)
+                continue
 
             logger.info(
                 "Starting try on pipeline, %s clothes: [%s]",
                 len(message.clothes),
                 message.clothes,
             )
-            # Model pipeline           
-            try_on = self.pipeline(
-                user_image=user_image,
-                clothes=message.clothes,
-                clothes_images=clothes_images,
-            )
+            # Model pipeline
+            try:
+                try_on_image = self.pipeline(
+                    user_image=user_image,
+                    clothes=message.clothes,
+                    clothes_images=clothes_images,
+                )
+            except Exception as exc:
+                logger.error("Pipeline error type: [%s], error: [%s]", type(exc), exc)
+                cmd = TryOnResponseCmd(
+                    **message.dict(),
+                    message=str(exc),
+                )
+                await self.resp_repository.create(cmd=cmd)
+                continue
 
             # Save result
-            res_file_name = str(message.outfit_id)
-            res_file_dir = f"{settings.TRY_ON_DIR}/{message.user_image_id}"
-
-            self.file_service.upload(
-                file=try_on,
-                file_name=res_file_name,
-                folder=res_file_dir,
-            )
-            
-            logger.info(
-                "Try on result file name [%s], dir [%s]",
-                res_file_name,
-                res_file_dir,
-            )
-            cmd = TryOnResponseCmd(
-                **message.dict(),
-                try_on_id=res_file_name,
-                try_on_dir=res_file_dir,
-            )
-            await self.resp_repository.create(cmd=cmd)
+            await self.save_result(message=message, try_on_image=try_on_image)
 
     def read_clothes(self, clothes: List[TryOnClothes], folder: str) -> List[BytesIO]:
         """Read clothes from file service"""
@@ -134,3 +136,35 @@ class TryOnWorker:
         logger.info("End try on, result: [%s]", try_on)
 
         return try_on
+    
+    async def save_result(self, message: TryOnTaskCmd, try_on_image: BytesIO) -> None:
+        res_file_name = str(message.outfit_id)
+        res_file_dir = f"{settings.TRY_ON_DIR}/{message.user_image_id}"
+        logger.info(
+            "Try on result file name [%s], dir [%s]",
+            res_file_name,
+            res_file_dir,
+        )
+        try:
+            self.file_service.upload(
+                file=try_on_image,
+                file_name=res_file_name,
+                folder=res_file_dir,
+            )
+
+            cmd = TryOnResponseCmd(
+                **message.dict(),
+                try_on_id=res_file_name,
+                try_on_dir=res_file_dir,
+                status_code=status.HTTP_201_CREATED,
+                message="Successfully created try on image.",
+            )
+        except AmazonS3Error as exc:
+            logger.error("Amazon s3 upload error: [%s]", exc)
+            cmd = TryOnResponseCmd(
+                **message.dict(),
+                status_code=exc.status_code,
+                message=exc.message,
+            )
+
+        await self.resp_repository.create(cmd=cmd)
