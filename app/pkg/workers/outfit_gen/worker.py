@@ -4,6 +4,8 @@ from io import BytesIO
 from typing import List, Dict
 from uuid import uuid4
 
+from fastapi import status
+
 from app.internal.repository.rabbitmq.outfit_gen_task import OutfitGenTaskRepository
 from app.internal.repository.rabbitmq.outfit_gen_response import OutfitGenRespRepository
 from app.internal.services import AmazonS3Service
@@ -41,7 +43,13 @@ class OutfitGenWorker:
         logger.info("Starting listen queue...")
 
         async for message in self.task_repository.read():
-            logger.info("New message [%s]", message)
+            logger.info(
+                "New message user id: [%s], prompt: [%s], gen amount: [%s], total clothes: [%s]",
+                message.user_id,
+                message.prompt,
+                message.amount,
+                len(message.clothes),
+            )
 
             try:
                 data = self.read_clothes(
@@ -69,6 +77,8 @@ class OutfitGenWorker:
                 cmd = OutfitGenResponseCmd(
                     user_id=message.user_id,
                     outfits=outfits,
+                    status_code=status.HTTP_201_CREATED,
+                    message="Successfully created outfits.",
                 )
                 logger.debug("End pipeline, result: [%s]", outfits)
             except Exception as exc:
