@@ -15,7 +15,7 @@ class BaseStatusResponseModel(BaseModel):
 class StatusResponseFields:
     """Model fields of status response model."""
 
-    status_code: fastapi_status = Field(
+    status_code: int = Field(
         description="Image category.",
         example=fastapi_status.HTTP_404_NOT_FOUND,
         default=fastapi_status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -27,5 +27,5 @@ class StatusResponseFields:
     )
 
 class StatusResponse(BaseStatusResponseModel):
-    status_code: fastapi_status = StatusResponseFields.status_code
+    status_code: int = StatusResponseFields.status_code
     message: str = StatusResponseFields.message
