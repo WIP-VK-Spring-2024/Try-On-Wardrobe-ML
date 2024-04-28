@@ -1,13 +1,14 @@
 """Models of cut model task object."""
 
 import uuid
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from pydantic.fields import Field
 from pydantic import UUID4
 
 from app.pkg.models.base import BaseModel
 from app.pkg.settings import settings
+from app.pkg.models.app.status_response import StatusResponse
 
 __all__ = [
     "CutTaskCmd",
@@ -78,8 +79,8 @@ class ClothesRespClassification(BaseCutModel):
     tags: Dict[str, float] = CutFields.probability
     styles: Dict[str, float] = CutFields.probability
 
-class CutResponseCmd(CutTaskCmd):
+class CutResponseCmd(CutTaskCmd, StatusResponse):
     user_id: UUID4 = CutFields.user_id
     clothes_id: UUID4 = CutFields.clothes_id
-    clothes_dir: str = CutFields.file_dir
-    classification: ClothesRespClassification
+    clothes_dir: Optional[str] = CutFields.file_dir
+    classification: Optional[ClothesRespClassification]
