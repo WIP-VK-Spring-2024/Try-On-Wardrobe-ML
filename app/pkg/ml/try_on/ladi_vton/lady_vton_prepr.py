@@ -97,7 +97,7 @@ class LadyVtonInputPreprocessor:
     def preprocess_cloth(self, image):
         # human image preprocessing
         image = image.resize((self.width, self.height),  Image.NEAREST)
-        image = self.transform(image) 
+        image = self.transform(image)
         return image
 
 

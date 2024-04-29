@@ -36,17 +36,13 @@ class LadyVtonAggregator:
                 "parsed_human":io.BytesIO,  # - image with parsed human 
                 "keypoints_json":io.BytesIO # human keypoints json
                 "cloth":io.BytesIO # cloth (without background) image bytes
+                "cloth_desc":str # description of cloth. Mainly cloth subcategory
                 "category":ImageCategory, # one of ['dresses', 'upper_body','lower_body']
-                }        
-
+                }
         """
 
-        #self.prepare_input_data(input_data)
         self.prepare_cloth(input_data)
         self.prepare_human(input_data)
-
-
-        # result_image = Image.new("RGB", input_data["image_human_orig"].size, )
 
         result_image = self.model.forward(input_data)
         fixed_face_image = self.face_fix_model.fix_face(
@@ -90,7 +86,7 @@ class LadyVtonAggregator:
 
         for cloth in clothes:
             self.prepare_cloth(cloth)
-        
+
             human_per_cloth = deepcopy(human)
             human_per_cloth['category'] = cloth["category"]
             self.preprocessor.prepare_human(human_per_cloth)
@@ -102,12 +98,11 @@ class LadyVtonAggregator:
             input_data['category'].append(human_per_cloth['category'])
             input_data['im_mask'].append(human_per_cloth['im_mask'])
             input_data['image_human_orig'].append(human_per_cloth['image_human_orig'])
-            
 
         #input_data['cloth'] = clothes
 
         result_images = self.model.forward(input_data, single_cloth=False)
-        
+
         fixed_face_results = []
         for i, result_image in enumerate(result_images):
             fixed_face_image = self.face_fix_model.fix_face(
@@ -135,7 +130,8 @@ class LadyVtonAggregator:
 
             clothes - List[Dict[str, Union[io.BytesIO, ImageCategory]]] with format:
                 {
-                "cloth":io.BytesIO # cloth (without background) image bytes
+                "cloth":io.BytesIO # cloth (without background) image bytes,
+                "cloth_desc":str, # cloth description. Generally, cloth subcategory
                 "category":ImageCategory, # one of ['dresses', 'upper_body','lower_body']
                 }                        
         """
@@ -152,7 +148,9 @@ class LadyVtonAggregator:
         # find a cloth with lower body
         for cloth in clothes:
            # assert isinstance(cloth, ImageCategory)
-            if cloth["category"] == ImageCategory.UPPER_BODY or cloth["category"] == ImageCategory.DRESSES:
+            if cloth["category"] == ImageCategory.UPPER_BODY\
+                or cloth["category"] == ImageCategory.DRESSES:
+
                 logger.info("[TryOnSet] Found upper|dress body cloth")
                 upper_human = deepcopy(human)
                 upper_human['category'] = cloth["category"]
@@ -162,21 +160,22 @@ class LadyVtonAggregator:
                 result_image = self.model.forward(input_data)
                 break
         else:
-            logger.warn(f"[TryOnSet] Not found upper body cloth")
-    
+            logger.warn("[TryOnSet] Not found upper body cloth")
+
         for cloth in clothes:
             if cloth["category"] == ImageCategory.LOWER_BODY:
                 logger.info("[TryOnSet] Found lower body cloth")
                 lower_human = deepcopy(human)
                 lower_human['category'] = cloth["category"]
-                lower_human['image_human_orig'] = result_image # making the input, output of previous step
+                # making the input, output of previous step
+                lower_human['image_human_orig'] = result_image 
                 self.preprocessor.prepare_human(lower_human)
                 input_data = self.get_try_on_data(human=lower_human, cloth=cloth)
                 result_image = self.model.forward(input_data)
                 human['image'] = result_image
                 break
         else:
-            logger.warn(f"[TryOnSet] Not found lower body cloth")
+            logger.warn("[TryOnSet] Not found lower body cloth")
 
 
         fixed_face_image = self.face_fix_model.fix_face(

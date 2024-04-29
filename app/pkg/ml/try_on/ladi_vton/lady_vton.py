@@ -138,12 +138,18 @@ class LadyVton(torch.nn.Module):
 
             pose_map = input_data["pose_map"].to(device=self.device,
                                                  dtype=self.weight_dtype).unsqueeze(0)
-            category = input_data["category"]
+
             cloth = input_data["cloth"].to(device=self.device,
                                            dtype=self.weight_dtype).unsqueeze(0)
             im_mask = input_data['im_mask'].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
 
+            prompt_category = [input_data['category']]
+
+            if "cloth_desc" in input_data.keys() and len(input_data["cloth_desc"]) > 0:
+                cloth_desc = [input_data['cloth_desc']]
+            else:
+                cloth_desc = None
         else:
             model_img = self.to_batch(input_data["image"])
             mask_img = self.to_batch(input_data["inpaint_mask"])
@@ -152,6 +158,12 @@ class LadyVton(torch.nn.Module):
             category = input_data["category"]
             cloth = self.to_batch(input_data["cloth"])
             im_mask = self.to_batch(input_data['im_mask'])
+            prompt_category = input_data['category']
+
+            if "cloth_desc" in input_data.keys() and len(input_data["cloth_desc"][0]) > 0:
+                cloth_desc = input_data['cloth_desc']
+            else:
+                cloth_desc = None
 
 
         low_cloth = tv_func.resize(cloth, (256, 192),
@@ -197,22 +209,27 @@ class LadyVton(torch.nn.Module):
             ImageCategory.UPPER_BODY: 'an upper body garment',
             ImageCategory.LOWER_BODY: 'a lower body garment',
         }
-        if single_cloth:
-            prompt_category = [input_data['category']]
-        else:
-            prompt_category = input_data['category']
 
-        text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}' for
-                    category in prompt_category]
-            
+        if cloth_desc is not None:
+            text = [f'a photo of a model wearing {desc} {" $ " * self.num_vstar}' for
+                desc in cloth_desc]
+        else:
+            text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}'
+                    for category in prompt_category]
+
         # Tokenize text
-        tokenized_text = self.tokenizer(text, max_length=self.tokenizer.model_max_length, padding="max_length",
-                                   truncation=True, return_tensors="pt").input_ids
+        tokenized_text = self.tokenizer(text,
+                                        max_length=self.tokenizer.model_max_length,
+                                        padding="max_length",
+                                        truncation=True,
+                                        return_tensors="pt").input_ids
         tokenized_text = tokenized_text.to(word_embeddings.device)
 
         # Encode the text using the PTEs extracted from the in-shop cloths
-        encoder_hidden_states = encode_text_word_embedding(self.text_encoder, tokenized_text,
-                                                           word_embeddings, self.num_vstar).last_hidden_state
+        encoder_hidden_states = encode_text_word_embedding(self.text_encoder,
+                                                           tokenized_text,
+                                                           word_embeddings,
+                                                           self.num_vstar).last_hidden_state
 
         # Generate images
         generated_images = self.val_pipe(
@@ -230,21 +247,8 @@ class LadyVton(torch.nn.Module):
             num_inference_steps=self.num_inference_steps
         ).images
 
-        # Save images
-        # for gen_image, cat, name in zip(generated_images, category, batch["im_name"]):
-        #     if not os.path.exists(os.path.join(save_dir, cat)):
-        #         os.makedirs(os.path.join(save_dir, cat))
-
-        #     if args.use_png:
-        #         name = name.replace(".jpg", ".png")
-        #         gen_image.save(
-        #             os.path.join(save_dir, cat, name))
-        #     else:
-        #         gen_image.save(
-        #             os.path.join(save_dir, cat, name), quality=95)
-        #generated_images[0].save(save_path)
         del encoder_hidden_states
-        
+
         if single_cloth:
             return generated_images[0]
         else:
