@@ -9,6 +9,7 @@ ninja
 accelerate
 xformers==0.0.22
 mediapipe
+scikit-learn==1.4.2
 
 fastapi
 boto3==1.34.69

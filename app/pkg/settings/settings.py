@@ -122,6 +122,7 @@ class ML(_Settings):
 
     #: pathlib.Path: Path of models weights.
     WEIGHTS_PATH: pathlib.Path = pathlib.Path("./app/pkg/ml/weights")
+    META_SAVE: pathlib.Path = pathlib.Path("./volume/ml_meta")
 
     TRY_ON_TASK_QUEUE: str = "try_on"
     TRY_ON_RESPONSE_QUEUE: str = "try_on_response"
@@ -129,6 +130,7 @@ class ML(_Settings):
     CUT_RESPONSE_QUEUE: str = "cut_response"
     OUTFIT_GEN_TASK_QUEUE: str = "outfit_gen"
     OUTFIT_GEN_RESPONSE_QUEUE: str = "outfit_gen_response"
+
 
 class Settings(_Settings):
     """APP settings."""

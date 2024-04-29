@@ -9,6 +9,7 @@ from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
+from app.pkg.ml.utils.device import get_device
 from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
@@ -22,16 +23,32 @@ class LocalRecSys:
     """
     Recommends set of clothes (outfit)
     """
-    def __init__(self, device="cuda:0", return_cloth_fields = ["clothes_id"]):
-        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+    def __init__(self,
+                 return_cloth_fields = ["clothes_id",],
+                 use_top_p=False,):
+        self.device = get_device("cuda:1")
+        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self.softmax = torch.nn.Softmax(dim=0)
-        
+        self.use_top_p = use_top_p
 
         self.return_cloth_fields = return_cloth_fields
-        self.device = device
         self.bytes_converter = BytesConverter()
+
+    def get_max_sets_amount(
+                self,            
+                upper_clothes: List[Dict[str, io.BytesIO]] = [],
+                lower_clothes: List[Dict[str, io.BytesIO]] = [],
+                dresses_clothes: List[Dict[str, io.BytesIO]] = [],
+                outerwear_clothes: List[Dict[str, io.BytesIO]] = [],
+                ):
+        U = len(upper_clothes)
+        L = len(lower_clothes)
+        D = len(dresses_clothes)
+        O = len(outerwear_clothes)
+        return U*L*(O+1) + D
+
 
     def forward(self,
                 upper_clothes: List[Dict[str, io.BytesIO]] = [],
@@ -69,7 +86,22 @@ class LocalRecSys:
         """
         if prompt == '':
             prompt = None
+        
+        max_sets = self.get_max_sets_amount(
+            upper_clothes,
+            lower_clothes,
+            dresses_clothes,
+            outerwear_clothes,              
+        )
 
+        if max_sets == 0:
+            logger.warn(f"Can't sample any sets. Not enough clothes")
+            return []
+        
+        if sample_amount > max_sets:
+            logger.warn("Sampling more than it could be."\
+                        f"Sampling {sample_amount}, when max is {max_sets}")
+        
         upper_clothes = self.get_embs_per_category(upper_clothes)
         lower_clothes = self.get_embs_per_category(lower_clothes)
         dresses_clothes = self.get_embs_per_category(dresses_clothes)
@@ -100,6 +132,10 @@ class LocalRecSys:
                     prompt_features=prompt_features)
 
                 outfits.append(outfit)
+        for outfit in outfits:
+            clothes_t = [cloth['tensor'].unsqueeze(0) for cloth in outfit['clothes']]
+            outfit['tensor'] = torch.concat(clothes_t).mean(0)
+            outfit['tensor'] = self.bytes_converter.torch_to_bytes(outfit['tensor'])
 
         for cloth in [*upper_clothes, *lower_clothes, *dresses_clothes, *outerwear_clothes]:
             del cloth['tensor']
@@ -120,7 +156,8 @@ class LocalRecSys:
                 for parameter in self.return_cloth_fields:
                     new_cloth[parameter] = cloth[parameter]
                 outfit_clothes.append(new_cloth)
-            outfits_cleared_fields.append({'clothes':outfit_clothes})
+            outfits_cleared_fields.append({'clothes':outfit_clothes,
+                                           'tensor':outfit['tensor'].cpu()})
         return outfits_cleared_fields             
 
     def _evaluate_outfit(self, outfit, prompt_features):
@@ -221,19 +258,22 @@ class LocalRecSys:
         scores = torch.tensor([outfit['score']/30 for outfit in outfits])
         normalized_scores = self.softmax(scores)
 
-        top_p_scores = None
-        top_p_index = None
-        top_p = 0.9
-        for i, score in enumerate(normalized_scores):
-            if normalized_scores[:i].sum() > top_p:
-                top_p_scores = normalized_scores[:i]
-                top_p_index = i
-                break
-        else:
-            logger.info("Got case top_p not reached")
-            top_p_scores = normalized_scores
+        if self.use_top_p:
+            top_p_scores = None
+            top_p_index = None
+            top_p = 0.9
+            for i, score in enumerate(normalized_scores):
+                if normalized_scores[:i].sum() > top_p:
+                    top_p_scores = normalized_scores[:i]
+                    top_p_index = i
+                    break
+            else:
+                logger.info("Got case top_p not reached")
+                top_p_scores = normalized_scores
 
-        new_scores = sum_normalize(top_p_scores)
+            new_scores = sum_normalize(top_p_scores)
+        else:
+            new_scores = normalized_scores
 
         indexes = np.arange(len(new_scores))
         # print(indexes, sample_amount, new_scores)
