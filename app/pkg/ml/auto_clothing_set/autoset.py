@@ -1,5 +1,6 @@
 from typing import Dict, Union, List
 import io
+from copy import deepcopy
 
 import torch
 import numpy as np
@@ -14,10 +15,12 @@ from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
 
+
 def sum_normalize(array):
     if isinstance(array, list):
         array = np.array(array)
     return array/array.sum()
+
 
 class LocalRecSys:
     """
@@ -25,13 +28,22 @@ class LocalRecSys:
     """
     def __init__(self,
                  return_cloth_fields = ["clothes_id",],
-                 use_top_p=False,):
+                 use_top_p=False,
+                 calculate_tensors=False,
+                 ):
+        """
+        Args:
+            return_cloth_fields - fields, that must be in each returning cloth
+            use_top_p - is need to use top_p algorithm
+            calculate_tensors - is need to recalculate tensors data
+        """
         self.device = get_device("cuda:1")
         self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self.softmax = torch.nn.Softmax(dim=0)
         self.use_top_p = use_top_p
+        self.calculate_tensors = calculate_tensors
 
         self.return_cloth_fields = return_cloth_fields
         self.bytes_converter = BytesConverter()
@@ -102,13 +114,22 @@ class LocalRecSys:
             logger.warn("Sampling more than it could be."\
                         f"Sampling {sample_amount}, when max is {max_sets}")
         
-        upper_clothes = self.get_embs_per_category(upper_clothes)
-        lower_clothes = self.get_embs_per_category(lower_clothes)
-        dresses_clothes = self.get_embs_per_category(dresses_clothes)
-        outerwear_clothes = self.get_embs_per_category(outerwear_clothes)
+        if self.calculate_tensors:
+            upper_clothes = self.get_embs_for_clothes(upper_clothes,
+                                                      return_bytes=False)
+            lower_clothes = self.get_embs_for_clothes(lower_clothes,
+                                                      return_bytes=False)
+            dresses_clothes = self.get_embs_for_clothes(dresses_clothes,
+                                                        return_bytes=False)
+            outerwear_clothes = self.get_embs_for_clothes(outerwear_clothes,
+                                                          return_bytes=False)
+        else:
+            upper_clothes = self.convert_tensors_from_bytes(upper_clothes)
+            lower_clothes = self.convert_tensors_from_bytes(lower_clothes)
+            dresses_clothes = self.convert_tensors_from_bytes(dresses_clothes,)
+            outerwear_clothes = self.convert_tensors_from_bytes(outerwear_clothes,)
 
-
-        if prompt:
+        if prompt is not None:
             prompt_features = self._get_text_embedding(prompt)
         else:
             prompt_features = None
@@ -132,19 +153,20 @@ class LocalRecSys:
                     prompt_features=prompt_features)
 
                 outfits.append(outfit)
-        for outfit in outfits:
-            clothes_t = [cloth['tensor'].unsqueeze(0) for cloth in outfit['clothes']]
-            outfit['tensor'] = torch.concat(clothes_t).mean(0)
-            outfit['tensor'] = self.bytes_converter.torch_to_bytes(outfit['tensor'])
-
-        for cloth in [*upper_clothes, *lower_clothes, *dresses_clothes, *outerwear_clothes]:
-            del cloth['tensor']
+        # for outfit in outfits:
+        #     clothes_t = [cloth['tensor'].unsqueeze(0) for cloth in outfit['clothes']]
+        #     outfit['tensor'] = torch.concat(clothes_t).mean(0)
+        #     outfit['tensor'] = self.bytes_converter.torch_to_bytes(outfit['tensor'])
+        # if 'tensor' not in self.return_cloth_fields:
+        #     for cloth in [*upper_clothes, *lower_clothes, *dresses_clothes, *outerwear_clothes]:
+        #         del cloth['tensor']
 
         sorted_outfits = sorted(outfits, key=lambda x: x['score'], reverse=True)
 
         # sample some outfits
         sampled_outfits = self.sample_outfit(sorted_outfits, sample_amount)
-        return self.stay_attributes(sampled_outfits)
+        sampled_outfits_cleared = self.stay_attributes(sampled_outfits)
+        return sampled_outfits_cleared
 
     def stay_attributes(self, outfits):
         outfits_cleared_fields = []
@@ -156,8 +178,8 @@ class LocalRecSys:
                 for parameter in self.return_cloth_fields:
                     new_cloth[parameter] = cloth[parameter]
                 outfit_clothes.append(new_cloth)
-            outfits_cleared_fields.append({'clothes':outfit_clothes,
-                                           'tensor':outfit['tensor'].cpu()})
+            outfits_cleared_fields.append({'clothes':outfit_clothes,})
+                                        #    'tensor':outfit['tensor']})
         return outfits_cleared_fields             
 
     def _evaluate_outfit(self, outfit, prompt_features):
@@ -177,14 +199,30 @@ class LocalRecSys:
         outfit['clothes_score'] = clothes_score
         outfit['prompt_corr'] = np.mean(prompt_correlations)
         
-    def get_embs_per_category(self, clothes:List[Dict[str, io.BytesIO]]):
+    def convert_tensors_from_bytes(self,
+                                   clothes: List[Dict[str, io.BytesIO]]):
+        converted_clothes = []
+        for cloth in clothes:
+            cloth_copy = deepcopy(cloth)
+            tensor = cloth['tensor']
+            cloth_copy['tensor'] = self.bytes_converter.bytes_to_torch(tensor)
+            # print(self.bytes_converter.bytes_to_torch(tensor))
+            converted_clothes.append(cloth_copy)
+            
+        return converted_clothes
+
+    def get_embs_for_clothes(self,
+                             clothes: List[Dict[str, io.BytesIO]],
+                             return_bytes=True):
         clothes = self.prepare_clothes(clothes)
         pil_clothes = [cloth['cloth'] for cloth in clothes]
-        image_features = self._get_images_embedding(pil_clothes)
+        image_features = self._get_images_embedding(pil_clothes).cpu()
         for cloth, tensor in zip(clothes, image_features):
-            cloth['tensor'] = tensor
+            if return_bytes:
+                cloth['tensor'] = self.bytes_converter.torch_to_bytes(tensor)
+            else:
+                cloth['tensor'] = tensor
         return clothes
-
 
     def prepare_clothes(self, clothes: list):
         new_clothes = []
@@ -276,7 +314,6 @@ class LocalRecSys:
             new_scores = normalized_scores
 
         indexes = np.arange(len(new_scores))
-        # print(indexes, sample_amount, new_scores)
         sampled_indexes = np.random.choice(indexes,(sample_amount,), p=new_scores ,replace=False)
         filtered_outfit = [outfits[i] for i in sampled_indexes]
         return filtered_outfit

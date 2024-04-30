@@ -35,7 +35,7 @@ class ClustersProcessor:
         user_ids =[outfit['user_id'] for outfit in outfits]
         outfit_ids =[outfit['outfit_id'] for outfit in outfits]
         
-        self.outfits = outfits
+        self.outfits = np.array(outfits)
         self.user_ids =  np.array(user_ids)
         self.outfit_ids =  np.array(outfit_ids)
         
@@ -100,3 +100,8 @@ class ClustersProcessor:
         embs_prob = softmax(dist_of_center_embs)
         sample_indexes = np.random.choice(range(len(embs_prob)), sample_amount, p=embs_prob)
         return selected_ids[sample_indexes]
+
+    def get_user_embs(self, user_id):
+        user_mask = self.user_ids == user_id
+        # selected_outfits_ids = self.outfit_ids[user_mask]
+        return self.outfits[user_mask]

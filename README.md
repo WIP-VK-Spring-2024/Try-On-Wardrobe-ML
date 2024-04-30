@@ -49,10 +49,12 @@ Classes for working has folowing view:
 Keys from dict above corresponds with output keys from 1) and 2) methods.
 
 4) __RecSys (global)__: /usr/src/app/app/pkg/ml/outfits_recsys/recsys.py, class CrossUsersOutfitRecSys. Main methods:
-    <br> 4.1. _update_global_outfits(outfits)_ - updates system with new outfits. Must be called every 10% of data gain (for example there were 100 outfits in common, then became 110, so need to call that method). Also can be called at system intialization
-    <br> 4.2. _recommend_from_bytes(user_outfits, samples)_ - recommends outfits directly from input user's outfits. Returns only ids. For example [93, 21, 453].
+    <br> 4.1. update_global_outfits_from_bytes(outfits, cloth_id_to_bytes)_ - updates system with new outfits. Must be called every 10% of data gain (for example there were 100 outfits in common, then became 110, so need to call that method). Also can be called at system intialization
+    <br> 4.2. _recommend(uuid, samples)_ - recommends outfits directly from input user's uuid. Returns only ids. For example [93, 21, 453].
 
-Outfits format: [ {"user_id":int/str, "outfit_id":int/str, "tensor": io.BytesIO  }, ...  ]
+Formats for recsys:
+<br>outfits format: [ {"user_id":int/str, "outfit_id":int/str, "clothes": [cloth_id, ...]  }, ...  ]
+<br> cloth_id_to_bytes format - dict[cloth_id] -> io.BytesIO (cloth tensor)
 <br> Key "tensor" can be caught from autoset system.
 
 ___
