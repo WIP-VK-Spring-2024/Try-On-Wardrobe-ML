@@ -48,6 +48,7 @@ class BytesConverter:
 
     def bytes_to_torch(self, buffer: io.BytesIO):
         # Загружаем тензор из буфера
+               
         buffer.seek(0)
         loaded_tensor = torch.load(buffer)
         return loaded_tensor
@@ -56,6 +57,7 @@ class BytesConverter:
         """
         Returns PIL image 
         """
+        buffer.seek(0)
         pil_image = Image.open(buffer)
         return pil_image
 
