@@ -146,7 +146,7 @@ class LadyVton(torch.nn.Module):
 
             prompt_category = [input_data['category']]
 
-            if "cloth_desc" in input_data.keys() and len(input_data["cloth_desc"]) > 0:
+            if input_data["cloth_desc"] is not None and len(input_data["cloth_desc"]) > 0:
                 cloth_desc = [input_data['cloth_desc']]
             else:
                 cloth_desc = None
@@ -160,7 +160,7 @@ class LadyVton(torch.nn.Module):
             im_mask = self.to_batch(input_data['im_mask'])
             prompt_category = input_data['category']
 
-            if "cloth_desc" in input_data.keys() and len(input_data["cloth_desc"][0]) > 0:
+            if input_data["cloth_desc"][0] is not None and len(input_data["cloth_desc"][0]) > 0:
                 cloth_desc = input_data['cloth_desc']
             else:
                 cloth_desc = None

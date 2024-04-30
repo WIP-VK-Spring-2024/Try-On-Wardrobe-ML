@@ -222,6 +222,9 @@ class LadyVtonAggregator:
         """
         Converts data types from byte array
         """
+        if "cloth_desc" not in cloth.keys():
+            cloth["cloth_desc"] = None
+
         cloth_rgba = self.bytes_converter.bytes_to_image(
             cloth["cloth"])
         cloth['cloth'] = ClothPreprocessor.replace_background_RGBA(cloth_rgba,
