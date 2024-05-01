@@ -1,5 +1,15 @@
+from typing import List
+
 from fastapi import status, Depends, APIRouter
-from app.pkg.models import TryOnTaskCmd, CutTaskCmd, OutfitGenTaskCmd
+from pydantic import UUID4
+
+from app.pkg.models import (
+    TryOnTaskCmd,
+    CutTaskCmd,
+    OutfitGenTaskCmd,
+    ClothesVectorCreateCmd,
+    ClothesVector,
+)
 from app.internal.services.model import ModelService
 
 
@@ -46,3 +56,28 @@ async def cut(
     model_service: ModelService = Depends(ModelService),
 ):
     return await model_service.create_outfit_gen_task(cmd=cmd)
+
+@model_router.post(
+    "/clothes_vector",
+    response_model=ClothesVector,
+    status_code=status.HTTP_201_CREATED,
+    description="Create clothes vector.",
+)
+async def create_clothes_vector(
+    id: UUID4,
+    tensor: List[float],
+    model_service: ModelService = Depends(ModelService),
+):
+    cmd = ClothesVectorCreateCmd(id=id, tensor=tensor)
+    return await model_service.create_clothes_vector(cmd=cmd)
+
+@model_router.get(
+    "/clothes_vector",
+    response_model=List[ClothesVector],
+    status_code=status.HTTP_200_OK,
+    description="Get all clothes vector.",
+)
+async def get_all_clothes_vector(
+    model_service: ModelService = Depends(ModelService),
+):
+    return await model_service.get_all_clothes_vector()

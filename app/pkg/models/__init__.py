@@ -15,3 +15,4 @@ from app.pkg.models.app.outfit_gen import (
 from app.pkg.models.app.amazon_s3 import ResponseMessage
 from app.pkg.models.app.image_category import ImageCategory, ImageCategoryAutoset
 from app.pkg.models.app.status_response import StatusResponse
+from app.pkg.models.app.clothes import ClothesVector, ClothesVectorCreateCmd
