@@ -1,11 +1,12 @@
 """Models of outfit object."""
 
 import uuid
+import pickle
 from typing import Dict, List, Optional
 from datetime import datetime
 
 from pydantic.fields import Field
-from pydantic import UUID4
+from pydantic import UUID4, validator
 
 from app.pkg.models.base import BaseModel
 
@@ -37,7 +38,6 @@ class OutfitFields:
     style_id: Optional[UUID4] = Field(description="Outfit style id.")
     try_on_result_id: Optional[UUID4] = Field(description="Try on result id.")
     purpose_ids: List[UUID4] = Field(description="Outfit purpose id.")
-    clothes_ids: List[UUID4] = Field(description="Outfit clothes ids.")
 
     is_generated: bool = Field(
         description="Generated outfit by model or manualy created.",
@@ -62,6 +62,10 @@ class OutfitFields:
     )
     privacy: str = Field(description="Outfit privacy text.")
 
+    clothes_ids: List[UUID4] = Field(description="Outfit clothes ids.")
+    clothes_vectors: List[List[float]] = Field(
+        description="Clothes vectors tensors.",
+    )
 
 class Outfit(BaseOutfit):
     id: UUID4 = OutfitFields.id
@@ -87,4 +91,12 @@ class Outfit(BaseOutfit):
 class UserOutfitClothes(BaseOutfit):
     outfit_id: UUID4 = OutfitFields.id
     user_id: UUID4 = OutfitFields.user_id
-    clothes: List[UUID4] = OutfitFields.clothes_ids
+    clothes: List[List[float]] = OutfitFields.clothes_vectors
+
+    @validator("clothes", pre=True, always=True)
+    def convert_bytes_to_tensor(cls, value):
+        for i, tensor in enumerate(value):
+            if isinstance(tensor, bytes):
+                value[i] = pickle.loads(tensor)
+
+        return value

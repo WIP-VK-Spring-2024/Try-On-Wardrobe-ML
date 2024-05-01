@@ -58,5 +58,5 @@ class ModelService:
         return await self.clothes_vector_repository.read_all()
 
     async def get_all_outfit(self) -> List[Outfit]:
-        # return await self.outfit_repository.read_all()
-        return await self.outfit_repository.read_all_clothes_tensors()
+        return await self.outfit_repository.read_all()
+        # return await self.outfit_repository.read_all_clothes_tensors()
