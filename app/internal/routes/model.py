@@ -9,6 +9,7 @@ from app.pkg.models import (
     OutfitGenTaskCmd,
     ClothesVectorCreateCmd,
     ClothesVector,
+    Outfit,
 )
 from app.internal.services.model import ModelService
 
@@ -64,11 +65,11 @@ async def cut(
     description="Create clothes vector.",
 )
 async def create_clothes_vector(
-    id: UUID4,
+    clothes_id: UUID4,
     tensor: List[float],
     model_service: ModelService = Depends(ModelService),
 ):
-    cmd = ClothesVectorCreateCmd(id=id, tensor=tensor)
+    cmd = ClothesVectorCreateCmd(clothes_id=clothes_id, tensor=tensor)
     return await model_service.create_clothes_vector(cmd=cmd)
 
 @model_router.get(
@@ -81,3 +82,15 @@ async def get_all_clothes_vector(
     model_service: ModelService = Depends(ModelService),
 ):
     return await model_service.get_all_clothes_vector()
+
+
+@model_router.get(
+    "/outfit",
+    response_model=List[Outfit],
+    status_code=status.HTTP_200_OK,
+    description="Get all outfit.",
+)
+async def get_all_outfit(
+    model_service: ModelService = Depends(ModelService),
+):
+    return await model_service.get_all_outfit()

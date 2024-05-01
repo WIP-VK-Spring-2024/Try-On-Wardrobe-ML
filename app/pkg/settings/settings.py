@@ -96,7 +96,7 @@ class Postgresql(Resource):
     @root_validator(pre=True)
     def build_dsn(cls, values: dict):  # pylint: disable=no-self-argument
         values["DSN"] = PostgresDsn.build(
-            scheme="postgresql+asyncpg",
+            scheme="postgresql",
             user=f"{values.get('USER')}",
             password=f"{urllib.parse.quote_plus(values.get('PASSWORD'))}",
             host=f"{values.get('HOST')}",

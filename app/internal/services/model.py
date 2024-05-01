@@ -1,13 +1,19 @@
 """Model service."""
 from typing import List
 
-from sqlalchemy.exc import SQLAlchemyError
-
-from app.pkg.models import TryOnTaskCmd, CutTaskCmd, OutfitGenTaskCmd, ClothesVectorCreateCmd, ClothesVector
+from app.pkg.models import (
+    TryOnTaskCmd,
+    CutTaskCmd,
+    OutfitGenTaskCmd,
+    ClothesVectorCreateCmd,
+    ClothesVector,
+    Outfit,
+)
 from app.internal.repository.rabbitmq.try_on_task import TryOnTaskRepository
 from app.internal.repository.rabbitmq.cut_task import CutTaskRepository
 from app.internal.repository.rabbitmq.outfit_gen_task import OutfitGenTaskRepository
 from app.internal.repository.postgresql.clothes_vector import ClothesVectorRepository
+from app.internal.repository.postgresql.outfit import OutfitRepository
 from app.pkg.logger import get_logger
 
 __all__ = ["ModelService"]
@@ -21,12 +27,14 @@ class ModelService:
     try_on_repository: TryOnTaskRepository
     outfit_gen_repository: OutfitGenTaskRepository
     clothes_vector_repository: ClothesVectorRepository
+    outfit_repository: OutfitRepository
 
     def __init__(self) -> None:
         self.cut_repository: CutTaskRepository = CutTaskRepository()
         self.try_on_repository: TryOnTaskRepository = TryOnTaskRepository()
         self.outfit_gen_repository: OutfitGenTaskRepository = OutfitGenTaskRepository()
         self.clothes_vector_repository: ClothesVectorRepository = ClothesVectorRepository()
+        self.outfit_repository: OutfitRepository = OutfitRepository()
 
 
     async def create_try_on_task(self, cmd: TryOnTaskCmd) -> TryOnTaskCmd:
@@ -48,3 +56,7 @@ class ModelService:
     
     async def get_all_clothes_vector(self) -> List[ClothesVector]:
         return await self.clothes_vector_repository.read_all()
+
+    async def get_all_outfit(self) -> List[Outfit]:
+        # return await self.outfit_repository.read_all()
+        return await self.outfit_repository.read_all_clothes_tensors()

@@ -3,17 +3,17 @@
 from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+import aiopg
+from aiopg.pool import Cursor
+from psycopg2.extras import RealDictCursor  # type: ignore
 
 from app.pkg.settings import settings
 
-__all__ = ["get_async_session"]
+__all__ = ["get_connection"]
 
-
-engine = create_async_engine(settings.RESOURCES.POSTGRES.DSN)
-async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 @asynccontextmanager
-async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_maker() as session:
-        yield session
+async def get_connection(dsn=settings.RESOURCES.POSTGRES.DSN) -> AsyncGenerator[Cursor, None]:
+    async with aiopg.connect(dsn=dsn) as conn:
+        async with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            yield cur

@@ -1,13 +1,12 @@
-"""Repository for test."""
+"""Repository for clothes vector."""
 
 from typing import List
 
-from sqlalchemy import insert, select
-
 from app.internal.repository.repository import Repository
-from app.pkg.resources.postgresql.connection import get_async_session
-from app.pkg.models.postgresql.clothes_vector import ClothesVector
-from app.internal.repository.postgresql.handlers.handle_exception import handle_exception
+from app.pkg.resources.postgresql.connection import get_connection
+from app.internal.repository.postgresql.handlers.collect_response import (
+    collect_response,
+)
 from app.pkg import models
 
 __all__ = ["ClothesVectorRepository"]
@@ -16,27 +15,28 @@ __all__ = ["ClothesVectorRepository"]
 class ClothesVectorRepository(Repository):
     """Clothes vector repository implementation."""
 
-    @handle_exception
+    @collect_response
     async def create(self, cmd: models.ClothesVectorCreateCmd) -> models.ClothesVector:
-        command = (
-            insert(ClothesVector)
-            .values(**cmd.dict())
-            .returning(ClothesVector)
-        )
+        q = """
+            insert into clothes_vector(
+                id, clothes_id, tensor
+            ) values (
+                %(id)s, %(clothes_id)s, %(tensor)s
+            )
+            returning id, clothes_id, tensor;
+        """
+        async with get_connection() as cur:
+            await cur.execute(q, cmd.to_dict())
+            return await cur.fetchone()
 
-        async with get_async_session() as session:
-            result = await session.execute(command)
-            await session.commit()
-            orm_result = result.scalars().first()
-    
-        return models.ClothesVector.from_orm(orm_result)
-
-    @handle_exception
+    @collect_response
     async def read_all(self) -> List[models.ClothesVector]:
-        query = select(ClothesVector)
+        q = """
+            select
+                id, clothes_id, tensor
+            from clothes_vector;
+        """
 
-        async with get_async_session() as session:
-            result = await session.execute(query)
-            orm_result = result.scalars().all()
-
-        return [models.ClothesVector.from_orm(obj) for obj in orm_result]
+        async with get_connection() as cur:
+            await cur.execute(q)
+            return await cur.fetchall()

@@ -19,10 +19,12 @@ class BaseClothesVector(BaseModel):
     """Base clothes vector model."""
 
 class ClothesVectorFields:
-    """Model fields of cut model."""
+    """Model fields of clothes vector model."""
 
-    id: UUID4 = Field(description="Clothes vector id.")
-    clothes_id: UUID4 = Field(description="Clothes id.", default_factory=uuid.uuid4)
+
+    id: UUID4 = Field(description="Clothes vector id.", default_factory=uuid.uuid4)
+    clothes_id: UUID4 = Field(description="Clothes id.")
+    
     tensor: List[float] = Field(
         description="Clothes vector tensor.",
         example=[
@@ -46,15 +48,6 @@ class ClothesVector(BaseClothesVector):
         if isinstance(value, bytes):
             return pickle.loads(value)
         return value
-
-    @classmethod
-    def from_orm(cls, data):
-        tensor = data.__dict__["tensor"]
-        data.__dict__["tensor"] = pickle.loads(tensor)
-        return super().from_orm(data)
-
-    class Config:
-        orm_mode = True
 
 class ClothesVectorCreateCmd(BaseClothesVector):
     id: UUID4 = ClothesVectorFields.id
