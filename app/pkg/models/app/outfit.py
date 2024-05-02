@@ -91,11 +91,15 @@ class Outfit(BaseOutfit):
 class UserOutfitClothes(BaseOutfit):
     outfit_id: UUID4 = OutfitFields.id
     user_id: UUID4 = OutfitFields.user_id
-    clothes: List[List[float]] = OutfitFields.clothes_vectors
+    clothes: List[UUID4] = OutfitFields.clothes_ids
+    clothes_tensor: List[List[float]] = OutfitFields.clothes_vectors
 
-    @validator("clothes", pre=True, always=True)
+    @validator("clothes_tensor", pre=True, always=True)
     def convert_bytes_to_tensor(cls, value):
         for i, tensor in enumerate(value):
+            if isinstance(tensor, memoryview):
+                tensor = tensor.tobytes() # TODO: add to collect response
+
             if isinstance(tensor, bytes):
                 value[i] = pickle.loads(tensor)
 

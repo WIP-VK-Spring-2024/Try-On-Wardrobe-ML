@@ -30,9 +30,10 @@ class OutfitRepository(Repository):
     async def read_all_clothes_tensors(self) -> List[models.UserOutfitClothes]:
         q = """
             select
-                outfits.id,
+                outfits.id as outfit_id,
                 outfits.user_id,
-                array_agg(cv.tensor) as clothes
+                array_agg(cv.clothes_id) as clothes,
+                array_agg(cv.tensor) as clothes_tensor
             from outfits
             join clothes_vector cv on outfits.transforms ? cv.clothes_id::text
             where outfits.privacy = 'public'
