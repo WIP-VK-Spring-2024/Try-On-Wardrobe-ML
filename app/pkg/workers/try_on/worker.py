@@ -1,5 +1,6 @@
 """Try on worker for read task queue."""
 
+import uuid
 from io import BytesIO
 from typing import BinaryIO, List
 
@@ -138,7 +139,7 @@ class TryOnWorker:
         return try_on
     
     async def save_result(self, message: TryOnTaskCmd, try_on_image: BytesIO) -> None:
-        res_file_name = str(message.outfit_id)
+        res_file_name = str(message.outfit_id) if message.outfit_id else str(uuid.uuid4())
         res_file_dir = f"{settings.TRY_ON_DIR}/{message.user_image_id}"
         logger.info(
             "Try on result file name [%s], dir [%s]",
