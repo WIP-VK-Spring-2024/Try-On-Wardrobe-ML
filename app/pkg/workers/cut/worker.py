@@ -1,5 +1,6 @@
 """Cut worker for read task queue."""
 
+import copy
 from typing import BinaryIO, Tuple
 
 from fastapi import status
@@ -120,6 +121,7 @@ class CutWorker:
         logger.debug("End autotag model, result: [%s].", classification)
         
         # TODO: Add vectorizer to background
+        cloth_image = copy.copy(cutted_clothes["cloth"])
         clothes_embs = self.vectorizer_model.get_embs_for_clothes([cutted_clothes])
         clothes_tensor = clothes_embs[0]['tensor']
         
@@ -127,7 +129,7 @@ class CutWorker:
         await self.clothes_vector_repository.create(cmd)
         logger.debug("End vectorizer, result: [%s].", clothes_tensor)
 
-        return cutted_clothes["cloth"], classification
+        return cloth_image, classification
 
     async def save_results(
         self,
