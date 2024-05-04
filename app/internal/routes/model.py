@@ -7,9 +7,11 @@ from app.pkg.models import (
     TryOnTaskCmd,
     CutTaskCmd,
     OutfitGenTaskCmd,
+    RecSysTaskCmd,
     ClothesVectorCreateCmd,
     ClothesVector,
     Outfit,
+    UserOutfitClothes,
 )
 from app.internal.services.model import ModelService
 
@@ -50,13 +52,25 @@ async def cut(
     "/outfit_gen",
     response_model=OutfitGenTaskCmd,
     status_code=status.HTTP_201_CREATED,
-    description="Create rec sys task.",
+    description="Create outfit gen task.",
 )
 async def cut(
     cmd: OutfitGenTaskCmd,
     model_service: ModelService = Depends(ModelService),
 ):
     return await model_service.create_outfit_gen_task(cmd=cmd)
+
+@model_router.post(
+    "/recsys",
+    response_model=RecSysTaskCmd,
+    status_code=status.HTTP_201_CREATED,
+    description="Create rec sys task.",
+)
+async def recsys(
+    cmd: RecSysTaskCmd,
+    model_service: ModelService = Depends(ModelService),
+):
+    return await model_service.create_recsys_task(cmd=cmd)
 
 @model_router.post(
     "/clothes_vector",
@@ -94,3 +108,15 @@ async def get_all_outfit(
     model_service: ModelService = Depends(ModelService),
 ):
     return await model_service.get_all_outfit()
+
+
+@model_router.get(
+    "/outfit_clothes_tensors",
+    response_model=List[UserOutfitClothes],
+    status_code=status.HTTP_200_OK,
+    description="Get all outfit clothes tensors.",
+)
+async def get_all_outfit_clothes_tensors(
+    model_service: ModelService = Depends(ModelService),
+):
+    return await model_service.get_all_outfit_clothes_tensors()

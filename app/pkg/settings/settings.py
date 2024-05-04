@@ -167,7 +167,8 @@ class ML(_Settings):
     CUT_RESPONSE_QUEUE: str = "cut_response"
     OUTFIT_GEN_TASK_QUEUE: str = "outfit_gen"
     OUTFIT_GEN_RESPONSE_QUEUE: str = "outfit_gen_response"
-
+    RECSYS_TASK_QUEUE: str = "recsys"
+    RECSYS_RESPONSE_QUEUE: str = "recsys_response"
 
 class Settings(_Settings):
     """APP settings."""

@@ -17,3 +17,4 @@ from app.pkg.models.app.image_category import ImageCategory, ImageCategoryAutose
 from app.pkg.models.app.status_response import StatusResponse
 from app.pkg.models.app.clothes import ClothesVector, ClothesVectorCreateCmd
 from app.pkg.models.app.outfit import Outfit, UserOutfitClothes
+from app.pkg.models.app.recsys import RecSysTaskCmd, RecSysResponseCmd

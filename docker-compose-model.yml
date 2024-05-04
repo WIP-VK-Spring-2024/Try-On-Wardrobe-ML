@@ -83,6 +83,33 @@ services:
 
     command: ["python3", "-m", "app.pkg.workers.outfit_gen.main"]
 
+  recsys-model:
+    container_name: recsys-model
+    
+    restart: unless-stopped
+
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile
+    deploy: # nvidia settings
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+           #   count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+
+    env_file:
+      - .env
+
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
+      - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
+
+    command: ["python3", "-m", "app.pkg.workers.recsys.main"]
+
 
 networks:
   default:

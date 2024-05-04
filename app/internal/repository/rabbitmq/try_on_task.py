@@ -3,12 +3,12 @@ from typing import AsyncGenerator
 
 from app.internal.repository.rabbitmq.base_repository import BaseRepository
 from app.pkg.models import TryOnTaskCmd
-
+from app.pkg.settings import settings
 
 class TryOnTaskRepository(BaseRepository):
     """Repository for try on model task queue."""
 
-    QUEUE_NAME: str = "try_on"
+    QUEUE_NAME: str = settings.ML.TRY_ON_TASK_QUEUE
 
     async def create(
         self,
