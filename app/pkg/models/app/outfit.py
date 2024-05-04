@@ -20,12 +20,12 @@ class BaseOutfit(BaseModel):
     """Base outfit model."""
 
 class Transform(BaseOutfit):
-    X: Optional[float] = Field(example=0.05)
-    Y: Optional[float] = Field(example=0.0)
-    Width: Optional[float] = Field(example=480.24)
-    Height: Optional[float] = Field(example=512.11)
-    Angle: Optional[float] = Field(example=17.35)
-    Scale: Optional[float] = Field(example=1.09)
+    x: Optional[float] = Field(example=0.05)
+    y: Optional[float] = Field(example=0.0)
+    width: Optional[float] = Field(example=480.24)
+    height: Optional[float] = Field(example=512.11)
+    angle: Optional[float] = Field(example=17.35)
+    scale: Optional[float] = Field(example=1.09)
 
 class OutfitFields:
     """Model fields of outfit model."""
