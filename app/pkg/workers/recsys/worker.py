@@ -67,19 +67,20 @@ class RecSysWorker:
             logger.info("Starting recsys pipeline")
             # Model pipeline
             try:
-                outfits_ids = self.recsys_model.recommend(
+                outfit_ids = self.recsys_model.recommend(
                     user_id=message.user_id,
                     samples=message.samples_amount,
                 )
                 cmd = RecSysResponseCmd(
-                    outfits_ids=outfits_ids,
+                    user_id=message.user_id,
+                    outfit_ids=outfit_ids,
                     status_code=status.HTTP_200_OK,
-                    message=f"Successfully generated {len(outfits_ids)} clothes.",
+                    message=f"Successfully generated {len(outfit_ids)} clothes.",
                 )
-                logger.debug("End pipeline, generated clothes %s: [%s]", len(outfits_ids), outfits_ids)
+                logger.debug("End pipeline, generated clothes %s: [%s]", len(outfit_ids), outfit_ids)
             except Exception as exc:
                 logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
-                cmd = RecSysResponseCmd(message=str(exc))
+                cmd = RecSysResponseCmd(user_id=message.user_id, message=str(exc))
 
             logger.info("Result model: [%s]", cmd)
             await self.resp_repository.create(cmd=cmd)

@@ -25,7 +25,7 @@ class RecsysFields:
     user_id: UUID4 = Field(description="User id.", example=uuid.uuid4())
     samples_amount: int = Field(description="Recsys sample amount.", default=5)
 
-    outfits_ids: List[UUID4] = Field(
+    outfit_ids: List[UUID4] = Field(
         description="Outfits ids for recsys result.",
         default_factory=lambda: [],
     )
@@ -36,4 +36,5 @@ class RecSysTaskCmd(BaseRecSysModel):
 
 
 class RecSysResponseCmd(BaseRecSysModel, StatusResponse):
-    outfits_ids: List[UUID4] = RecsysFields.outfits_ids
+    user_id: UUID4 = RecsysFields.user_id
+    outfit_ids: List[UUID4] = RecsysFields.outfit_ids
