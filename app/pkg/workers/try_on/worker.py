@@ -82,7 +82,7 @@ class TryOnWorker:
                     clothes_images=clothes_images,
                 )
             except Exception as exc:
-                logger.error("Pipeline error type: [%s], error: [%s]", type(exc), exc)
+                logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = TryOnResponseCmd(
                     **message.dict(),
                     message=str(exc),

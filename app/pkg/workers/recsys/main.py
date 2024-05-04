@@ -4,6 +4,7 @@ import asyncio
 
 from app.internal.repository.rabbitmq.recsys_task import RecSysTaskRepository
 from app.internal.repository.rabbitmq.recsys_response import RecSysRespRepository
+from app.internal.repository.postgresql.outfit import OutfitRepository
 from app.pkg.workers.recsys.worker import RecSysWorker
 from app.pkg.ml.outfits_recsys.recsys import CrossUsersOutfitRecSys
 from app.pkg.logger import get_logger
@@ -17,12 +18,15 @@ def start_worker():
     logger.info("Starting initialization...")
     task_repository = RecSysTaskRepository()
     resp_repository = RecSysRespRepository()
+    outfit_repository = OutfitRepository()
+
 
     recsys_model = CrossUsersOutfitRecSys()
 
     model_worker = RecSysWorker(
         task_repository=task_repository,
         resp_repository=resp_repository,
+        outfit_repository=outfit_repository,
         recsys_model=recsys_model,
     )
     logger.info("Successfuly initializated.")

@@ -50,7 +50,6 @@ class ClothesVector(BaseClothesVector):
         return value
 
 class ClothesVectorCreateCmd(BaseClothesVector):
-    id: UUID4 = ClothesVectorFields.id
     clothes_id: UUID4 = ClothesVectorFields.clothes_id
     tensor: bytes = ClothesVectorFields.tensor_bytes
 

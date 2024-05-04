@@ -19,9 +19,9 @@ class ClothesVectorRepository(Repository):
     async def create(self, cmd: models.ClothesVectorCreateCmd) -> models.ClothesVector:
         q = """
             insert into clothes_vector(
-                id, clothes_id, tensor
+                clothes_id, tensor
             ) values (
-                %(id)s, %(clothes_id)s, %(tensor)s
+                %(clothes_id)s, %(tensor)s
             )
             returning id, clothes_id, tensor;
         """

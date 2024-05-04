@@ -82,7 +82,7 @@ class OutfitGenWorker:
                 )
                 logger.debug("End pipeline, result: [%s]", outfits)
             except Exception as exc:
-                logger.error("Pipeline error type: [%s], error: [%s]", type(exc), exc)
+                logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = OutfitGenResponseCmd(user_id=message.user_id, message=str(exc))
 
             logger.info("Result model: [%s]", cmd)

@@ -116,18 +116,18 @@ class LocalRecSys:
         
         if self.calculate_tensors:
             upper_clothes = self.get_embs_for_clothes(upper_clothes,
-                                                      return_bytes=False)
+                                                      return_list=False)
             lower_clothes = self.get_embs_for_clothes(lower_clothes,
-                                                      return_bytes=False)
+                                                      return_list=False)
             dresses_clothes = self.get_embs_for_clothes(dresses_clothes,
-                                                        return_bytes=False)
+                                                        return_list=False)
             outerwear_clothes = self.get_embs_for_clothes(outerwear_clothes,
-                                                          return_bytes=False)
+                                                          return_list=False)
         else:
-            upper_clothes = self.convert_tensors_from_bytes(upper_clothes)
-            lower_clothes = self.convert_tensors_from_bytes(lower_clothes)
-            dresses_clothes = self.convert_tensors_from_bytes(dresses_clothes,)
-            outerwear_clothes = self.convert_tensors_from_bytes(outerwear_clothes,)
+            upper_clothes = self.convert_tensors_from_list(upper_clothes)
+            lower_clothes = self.convert_tensors_from_list(lower_clothes)
+            dresses_clothes = self.convert_tensors_from_list(dresses_clothes,)
+            outerwear_clothes = self.convert_tensors_from_list(outerwear_clothes,)
 
         if prompt is not None:
             prompt_features = self._get_text_embedding(prompt)
@@ -146,13 +146,12 @@ class LocalRecSys:
                         prompt_features=prompt_features)
                     outfits.append(outfit)
                 
-        for dress in dresses_clothes:
-         
-                outfit = {'clothes':[dress]}
-                self._evaluate_outfit(outfit=outfit,
-                    prompt_features=prompt_features)
+        for dress in dresses_clothes:         
+            outfit = {'clothes':[dress]}
+            self._evaluate_outfit(outfit=outfit,
+                prompt_features=prompt_features)
 
-                outfits.append(outfit)
+            outfits.append(outfit)
         # for outfit in outfits:
         #     clothes_t = [cloth['tensor'].unsqueeze(0) for cloth in outfit['clothes']]
         #     outfit['tensor'] = torch.concat(clothes_t).mean(0)
@@ -198,7 +197,17 @@ class LocalRecSys:
         outfit['score'] = 25 * np.mean(prompt_correlations) + clothes_score
         outfit['clothes_score'] = clothes_score
         outfit['prompt_corr'] = np.mean(prompt_correlations)
-        
+
+    def convert_tensors_from_list(self, clothes:List[Dict[str, list]]):
+        converted_clothes = []
+        for cloth in clothes:
+            cloth_copy = deepcopy(cloth)
+            tensor = torch.tensor(cloth['tensor'])
+            cloth_copy['tensor'] = tensor
+            # print(self.bytes_converter.bytes_to_torch(tensor))
+            converted_clothes.append(cloth_copy)           
+        return converted_clothes
+
     def convert_tensors_from_bytes(self,
                                    clothes: List[Dict[str, io.BytesIO]]):
         converted_clothes = []
@@ -213,16 +222,17 @@ class LocalRecSys:
 
     def get_embs_for_clothes(self,
                              clothes: List[Dict[str, io.BytesIO]],
-                             return_bytes=True):
+                             return_list=True):
         clothes = self.prepare_clothes(clothes)
         pil_clothes = [cloth['cloth'] for cloth in clothes]
         image_features = self._get_images_embedding(pil_clothes).cpu()
         for cloth, tensor in zip(clothes, image_features):
-            if return_bytes:
-                cloth['tensor'] = self.bytes_converter.torch_to_bytes(tensor)
+            if return_list:
+                cloth['tensor'] = tensor.tolist()
             else:
                 cloth['tensor'] = tensor
         return clothes
+
 
     def prepare_clothes(self, clothes: list):
         new_clothes = []

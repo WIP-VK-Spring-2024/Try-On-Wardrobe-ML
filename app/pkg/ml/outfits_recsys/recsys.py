@@ -50,6 +50,63 @@ class CrossUsersOutfitRecSys:
             )
         self.update_global_outfits(outfits)
 
+
+    def update_global_outfits_list_format(self,
+                                         outfits,
+                                         cloth_id_to_list):
+        """
+        Adds outfit tensor field
+        
+        Args:
+            outfits - list:
+                [
+                    {"user_id":int/str,
+                     "outfit_id":int/str,
+                     "clothes": [cloth_id, ...]
+                     }, ...
+                ]
+            cloth_id_to_list - dict[cloth_id] -> list (cloth tensor)
+        """
+        outfits = self.outfits_from_cloth_list(
+            outfits=outfits,
+            cloth_id_to_list=cloth_id_to_list
+            )
+        self.update_global_outfits(outfits)
+
+
+    def outfits_from_cloth_list(self, outfits, cloth_id_to_list):
+        """
+        Adds outfit tensor field
+        
+        Args:
+            outfits - list:
+                [
+                    {"user_id":int/str,
+                     "outfit_id":int/str,
+                     "clothes": [cloth_id, ...]
+                     }, ...
+                ]
+            cloth_id_to_bytes - dict[cloth_id] -> io.BytesIO (cloth tensor)
+        """
+        cloth_id_to_tensor = {}
+        for cloth_id, cloth_list in cloth_id_to_list.items():
+            tensor = torch.tensor(cloth_list)
+            cloth_id_to_tensor[cloth_id] = tensor 
+
+        outfits = self.get_outfits_vector(outfits, cloth_id_to_tensor)
+        return outfits
+
+    def get_outfits_vector(self, outfits, cloth_id_to_tensor):
+        for outfit in outfits:
+            clothes_ids = outfit['clothes']
+            clothes_tensors = [cloth_id_to_tensor[cloth_id].unsqueeze(0)
+                              for cloth_id in clothes_ids]
+            clothes_tensors = torch.concatenate(clothes_tensors)
+            outfit['tensor'] = clothes_tensors.mean(0)
+        return outfits
+
+
+
     def update_global_outfits(self, outfits):
         # if from_bytes:
         #     outfits = self.outfits_from_bytes(outfits)
@@ -101,12 +158,7 @@ class CrossUsersOutfitRecSys:
                      )
             cloth_id_to_tensor[cloth_id] = tensor 
 
-        for outfit in outfits:
-            clothes_ids = outfit['clothes']
-            clothes_tensors = [cloth_id_to_tensor[cloth_id].unsqueeze(0)
-                              for cloth_id in clothes_ids]
-            clothes_tensors = torch.concatenate(clothes_tensors)
-            outfit['tensor'] = clothes_tensors.mean(0)
+        outfits = self.get_outfits_vector(outfits, cloth_id_to_tensor)
         return outfits
 
     # def outfit_from_bytes(self, outfit):

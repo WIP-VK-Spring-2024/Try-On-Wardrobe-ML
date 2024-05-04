@@ -24,8 +24,8 @@ class RecSysWorker:
         self,
         task_repository: RecSysTaskRepository,
         resp_repository: RecSysRespRepository,
-        recsys_model: CrossUsersOutfitRecSys,
         outfit_repository: OutfitRepository,
+        recsys_model: CrossUsersOutfitRecSys,
     ):
         self.task_repository = task_repository
         self.resp_repository = resp_repository
@@ -38,16 +38,17 @@ class RecSysWorker:
         clothes_tensors = await self.outfit_repository.read_all_clothes_tensors()
 
         # Получаем необходимые форматы данных для модели
-        outfits = clothes_tensors.dict(exclude={'clothes_tensor'})
+        outfits = [clothes.dict(exclude={'clothes_tensor'}) for clothes in clothes_tensors]
 
-        cloth_id_to_bytes = {}
-        for clothes in clothes_tensors:
-            for cloth_id, tensor in zip(clothes.clothes, clothes.clothes_tensor):
-                cloth_id_to_bytes[cloth_id] = tensor
+        cloth_id_to_list = {}
+        for outfit in clothes_tensors:
+            for cloth_id, tensor in zip(outfit.clothes, outfit.clothes_tensor):
+                cloth_id_to_list[cloth_id] = tensor
 
-        self.recsys_model.update_global_outfits_from_bytes(
+        logger.debug("Outfits: [%s], cloth_id_to_list: [%s]", outfits, cloth_id_to_list)
+        self.recsys_model.update_global_outfits_list_format(
             outfits=outfits,
-            cloth_id_to_bytes=cloth_id_to_bytes,
+            cloth_id_to_list=cloth_id_to_list,
         )
         logger.info("RecSys model successfully initialized.")
 
@@ -77,7 +78,7 @@ class RecSysWorker:
                 )
                 logger.debug("End pipeline, generated clothes %s: [%s]", len(clothes_ids), clothes_ids)
             except Exception as exc:
-                logger.error("Pipeline error type: [%s], error: [%s]", type(exc), exc)
+                logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = RecSysResponseCmd(message=str(exc))
 
             logger.info("Result model: [%s]", cmd)
