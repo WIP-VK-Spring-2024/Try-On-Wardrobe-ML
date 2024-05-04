@@ -99,7 +99,7 @@ class CrossUsersOutfitRecSys:
     def get_outfits_vector(self, outfits, cloth_id_to_tensor):
         for outfit in outfits:
             clothes_ids = outfit['clothes']
-            clothes_tensors = [cloth_id_to_tensor[cloth_id].unsqueeze(0)
+            clothes_tensors = [cloth_id_to_tensor[cloth_id].reshape(1,-1)
                               for cloth_id in clothes_ids]
             clothes_tensors = torch.concatenate(clothes_tensors)
             outfit['tensor'] = clothes_tensors.mean(0)

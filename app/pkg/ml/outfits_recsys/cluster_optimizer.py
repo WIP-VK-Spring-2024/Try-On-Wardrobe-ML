@@ -92,6 +92,7 @@ class ClustersOptimizer:
         len_embs = len(embeddings)
         max_possible_k = round(len_embs**(1/2))
         k_range = range(1, max_possible_k + 1)
+        logger.debug(f"For calculating optimal_k got {len_embs} embeddings. Also {max_possible_k=}")
 
         for i in k_range:
             kmeans = KMeans(n_clusters=i, random_state=42, n_init='auto')
@@ -101,7 +102,7 @@ class ClustersOptimizer:
 
         wcss_postprocessed = np.array(wcss)**(1/2.85)
 
-
+        calculated_params = False
         try:
             params, param_cov = curve_fit(self.approx_func,
                                         k_range,
@@ -111,14 +112,23 @@ class ClustersOptimizer:
 
             optimal_k = self.approximation.get_optimal_x(*params)
             if optimal_k > max_possible_k:
-                optimal_k = max_possible_k 
+                optimal_k = max_possible_k
+            calculated_params = True 
 
         except RuntimeError:
             optimal_k = max_possible_k
             logger.warn(f"Cant calculate optimal_k. Set up to {optimal_k}")
+            calculated_params = False
+        except TypeError as e:
+            optimal_k = max_possible_k
+            logger.warn(f"Error while calculating optimal k. Set up to {optimal_k}. Possible reason: little data. Error: {e}")
+            calculated_params = False
 
+        if np.isnan(optimal_k):
+            logger.warn("Calculated optimal_k is None")
+            optimal_k = max_possible_k
 
-        if self.save_plots:
+        if self.save_plots and calculated_params:
             self.plot_orig_inertia(k_range, wcss)
 
             inertia_approx = self.approx_func(k_range, *params)

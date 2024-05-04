@@ -45,7 +45,7 @@ class RecSysWorker:
             for cloth_id, tensor in zip(outfit.clothes, outfit.clothes_tensor):
                 cloth_id_to_list[cloth_id] = tensor
 
-        logger.debug("Outfits: [%s], cloth_id_to_list: [%s]", outfits, cloth_id_to_list)
+        logger.debug("Total outfits: [%s]", len(outfits))
         self.recsys_model.update_global_outfits_list_format(
             outfits=outfits,
             cloth_id_to_list=cloth_id_to_list,
@@ -67,16 +67,16 @@ class RecSysWorker:
             logger.info("Starting recsys pipeline")
             # Model pipeline
             try:
-                clothes_ids = self.recsys_model.recommend(
+                outfits_ids = self.recsys_model.recommend(
                     user_id=message.user_id,
                     samples=message.samples_amount,
                 )
                 cmd = RecSysResponseCmd(
-                    clothes_ids=clothes_ids,
+                    outfits_ids=outfits_ids,
                     status_code=status.HTTP_200_OK,
-                    message=f"Successfully generated {len(clothes_ids)} clothes.",
+                    message=f"Successfully generated {len(outfits_ids)} clothes.",
                 )
-                logger.debug("End pipeline, generated clothes %s: [%s]", len(clothes_ids), clothes_ids)
+                logger.debug("End pipeline, generated clothes %s: [%s]", len(outfits_ids), outfits_ids)
             except Exception as exc:
                 logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = RecSysResponseCmd(message=str(exc))
