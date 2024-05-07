@@ -128,7 +128,7 @@ class LocalRecSys:
             outerwear_clothes = self.convert_tensors_from_list(outerwear_clothes)
 
         if prompt is not None:
-            prompt_features = self._get_text_embedding(prompt)
+            prompt_features = self._get_text_embedding(prompt).cpu()
         else:
             prompt_features = None
 

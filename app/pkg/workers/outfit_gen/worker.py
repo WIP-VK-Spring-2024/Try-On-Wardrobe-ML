@@ -66,7 +66,7 @@ class OutfitGenWorker:
                 await self.resp_repository.create(cmd=cmd)
                 continue
 
-            logger.info("Starting try on pipeline")
+            logger.info("Starting outfit gen pipeline")
             # Model pipeline           
             try:
                 outfits = self.pipeline(
