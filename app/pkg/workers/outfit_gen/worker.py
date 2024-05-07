@@ -9,7 +9,7 @@ from fastapi import status
 from app.internal.repository.rabbitmq.outfit_gen_task import OutfitGenTaskRepository
 from app.internal.repository.rabbitmq.outfit_gen_response import OutfitGenRespRepository
 from app.internal.services import AmazonS3Service
-from app.pkg.models import OutfitGenClothes, OutfitGenResponseCmd, ImageCategoryAutoset, OutfitGenClothes, Outfit
+from app.pkg.models import OutfitGenClothes, OutfitGenResponseCmd, ImageCategoryAutoset, OutfitGenClothes, OutfitGen
 from app.pkg.logger import get_logger
 from app.pkg.ml.auto_clothing_set.autoset import LocalRecSys
 from app.pkg.models.exceptions.amazon_s3 import AmazonS3Error
@@ -66,7 +66,7 @@ class OutfitGenWorker:
                 await self.resp_repository.create(cmd=cmd)
                 continue
 
-            logger.info("Starting try on pipeline")
+            logger.info("Starting outfit gen pipeline")
             # Model pipeline           
             try:
                 outfits = self.pipeline(
@@ -82,7 +82,7 @@ class OutfitGenWorker:
                 )
                 logger.debug("End pipeline, result: [%s]", outfits)
             except Exception as exc:
-                logger.error("Pipeline error type: [%s], error: [%s]", type(exc), exc)
+                logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = OutfitGenResponseCmd(user_id=message.user_id, message=str(exc))
 
             logger.info("Result model: [%s]", cmd)
@@ -132,6 +132,7 @@ class OutfitGenWorker:
             outerwear_clothes=data[ImageCategoryAutoset.OUTWEAR],
             prompt=prompt,
             sample_amount=amount,
+            calculate_tensors=True,
         )
         logger.debug("End autoset gen, result: [%s]", outfits)
 
@@ -144,7 +145,7 @@ class OutfitGenWorker:
                 )
                 clothes.append(outfit_gen_clothes)
 
-            cur_outfit = Outfit(clothes=clothes)
+            cur_outfit = OutfitGen(clothes=clothes)
             result_outfits.append(cur_outfit)
 
         return result_outfits

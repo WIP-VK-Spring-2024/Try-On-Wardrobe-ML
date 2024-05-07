@@ -24,7 +24,7 @@ class BaseRepository:
             await channel.declare_queue(self.QUEUE_NAME)
             await channel.default_exchange.publish(
                 aio_pika.Message(
-                    body=json.dumps(cmd.to_dict()).encode(),
+                    body=json.dumps(cmd.to_dict(exclude_none=True)).encode(),
                     delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
                 ),
                 self.QUEUE_NAME,

@@ -1,4 +1,4 @@
-"""Main module for start recsys model task worker."""
+"""Main module for start outfit gen model task worker."""
 
 import asyncio
 

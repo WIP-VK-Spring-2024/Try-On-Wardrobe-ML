@@ -117,9 +117,19 @@ class LadyVton(torch.nn.Module):
         # if error in generator initialization occures, replace self.device to "cuda"
         self.generator = torch.Generator(self.device).manual_seed(self.seed)
 
+    def to_batch(self, tensors):
+        batch = (
+            torch.concatenate([tensor\
+                               .to(device=self.device, dtype=self.weight_dtype)\
+                               .unsqueeze(0)\
+                               for tensor in tensors],
+                               dim=0)
+        )
+        return batch
+
     @torch.inference_mode()
     def forward(self, input_data, single_cloth=True):
-       # input_data = self.data_prepr.preprocess_input(input_data)
+
         if single_cloth:
             model_img = input_data["image"].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
@@ -128,11 +138,33 @@ class LadyVton(torch.nn.Module):
 
             pose_map = input_data["pose_map"].to(device=self.device,
                                                  dtype=self.weight_dtype).unsqueeze(0)
-            category = input_data["category"]
+
             cloth = input_data["cloth"].to(device=self.device,
                                            dtype=self.weight_dtype).unsqueeze(0)
             im_mask = input_data['im_mask'].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
+
+            prompt_category = [input_data['category']]
+
+            if input_data["cloth_desc"] is not None and len(input_data["cloth_desc"]) > 0:
+                cloth_desc = [input_data['cloth_desc']]
+            else:
+                cloth_desc = None
+        else:
+            model_img = self.to_batch(input_data["image"])
+            mask_img = self.to_batch(input_data["inpaint_mask"])
+
+            pose_map = self.to_batch(input_data["pose_map"])
+            category = input_data["category"]
+            cloth = self.to_batch(input_data["cloth"])
+            im_mask = self.to_batch(input_data['im_mask'])
+            prompt_category = input_data['category']
+
+            if input_data["cloth_desc"][0] is not None and len(input_data["cloth_desc"][0]) > 0:
+                cloth_desc = input_data['cloth_desc']
+            else:
+                cloth_desc = None
+
 
         low_cloth = tv_func.resize(cloth, (256, 192),
                                    torchvision.transforms.InterpolationMode.BILINEAR,
@@ -177,17 +209,27 @@ class LadyVton(torch.nn.Module):
             ImageCategory.UPPER_BODY: 'an upper body garment',
             ImageCategory.LOWER_BODY: 'a lower body garment',
         }
-        text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}' for
-                category in [input_data['category']]]#[batch['category']]]
+
+        if cloth_desc is not None:
+            text = [f'a photo of a model wearing {desc} {" $ " * self.num_vstar}' for
+                desc in cloth_desc]
+        else:
+            text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}'
+                    for category in prompt_category]
 
         # Tokenize text
-        tokenized_text = self.tokenizer(text, max_length=self.tokenizer.model_max_length, padding="max_length",
-                                   truncation=True, return_tensors="pt").input_ids
+        tokenized_text = self.tokenizer(text,
+                                        max_length=self.tokenizer.model_max_length,
+                                        padding="max_length",
+                                        truncation=True,
+                                        return_tensors="pt").input_ids
         tokenized_text = tokenized_text.to(word_embeddings.device)
 
         # Encode the text using the PTEs extracted from the in-shop cloths
-        encoder_hidden_states = encode_text_word_embedding(self.text_encoder, tokenized_text,
-                                                           word_embeddings, self.num_vstar).last_hidden_state
+        encoder_hidden_states = encode_text_word_embedding(self.text_encoder,
+                                                           tokenized_text,
+                                                           word_embeddings,
+                                                           self.num_vstar).last_hidden_state
 
         # Generate images
         generated_images = self.val_pipe(
@@ -205,19 +247,9 @@ class LadyVton(torch.nn.Module):
             num_inference_steps=self.num_inference_steps
         ).images
 
-        # Save images
-        # for gen_image, cat, name in zip(generated_images, category, batch["im_name"]):
-        #     if not os.path.exists(os.path.join(save_dir, cat)):
-        #         os.makedirs(os.path.join(save_dir, cat))
-
-        #     if args.use_png:
-        #         name = name.replace(".jpg", ".png")
-        #         gen_image.save(
-        #             os.path.join(save_dir, cat, name))
-        #     else:
-        #         gen_image.save(
-        #             os.path.join(save_dir, cat, name), quality=95)
-        #generated_images[0].save(save_path)
         del encoder_hidden_states
-        
-        return generated_images[0]
+
+        if single_cloth:
+            return generated_images[0]
+        else:
+            return generated_images

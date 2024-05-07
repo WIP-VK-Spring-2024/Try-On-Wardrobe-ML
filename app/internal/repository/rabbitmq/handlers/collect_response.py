@@ -1,6 +1,5 @@
 """Module for decorator `collect_response`."""
 import json
-from typing import List, Type, Union
 
 import aio_pika
 import pydantic

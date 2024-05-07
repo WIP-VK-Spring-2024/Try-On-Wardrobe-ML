@@ -35,7 +35,7 @@ class BytesConverter:
         # Преобразуем JSON-строку обратно в словарь
         return json.loads(bytes)
 
-    def torch_to_buffer(self, tensor):
+    def torch_to_bytes(self, tensor):
         buffer = io.BytesIO()
 
         # Сохраняем тензор в буфер
@@ -43,11 +43,13 @@ class BytesConverter:
 
         # Получаем содержимое буфера в виде байтов
         buffer.seek(0)
-        tensor_data = buffer.read()
-        return tensor_data
+        #tensor_data = buffer.read()
+        return buffer
 
-    def buffer_to_torch(self, buffer: io.BytesIO):
+    def bytes_to_torch(self, buffer: io.BytesIO):
         # Загружаем тензор из буфера
+               
+        buffer.seek(0)
         loaded_tensor = torch.load(buffer)
         return loaded_tensor
 
@@ -55,6 +57,7 @@ class BytesConverter:
         """
         Returns PIL image 
         """
+        buffer.seek(0)
         pil_image = Image.open(buffer)
         return pil_image
 

@@ -1,5 +1,6 @@
 from typing import Dict, Union, List
 import io
+from copy import deepcopy
 
 import torch
 import numpy as np
@@ -9,29 +10,54 @@ from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
+from app.pkg.ml.utils.device import get_device
 from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
+
 
 def sum_normalize(array):
     if isinstance(array, list):
         array = np.array(array)
     return array/array.sum()
 
+
 class LocalRecSys:
     """
     Recommends set of clothes (outfit)
     """
-    def __init__(self, device="cuda:0", return_cloth_fields = ["clothes_id"]):
-        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+    def __init__(self,
+                 return_cloth_fields = ["clothes_id",],
+                 use_top_p=False,
+                 ):
+        """
+        Args:
+            return_cloth_fields - fields, that must be in each returning cloth
+            use_top_p - is need to use top_p algorithm
+        """
+        self.device = get_device("cuda:1")
+        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self.softmax = torch.nn.Softmax(dim=0)
-        
+        self.use_top_p = use_top_p
 
         self.return_cloth_fields = return_cloth_fields
-        self.device = device
         self.bytes_converter = BytesConverter()
+
+    def get_max_sets_amount(
+                self,            
+                upper_clothes: List[Dict[str, io.BytesIO]] = [],
+                lower_clothes: List[Dict[str, io.BytesIO]] = [],
+                dresses_clothes: List[Dict[str, io.BytesIO]] = [],
+                outerwear_clothes: List[Dict[str, io.BytesIO]] = [],
+                ):
+        U = len(upper_clothes)
+        L = len(lower_clothes)
+        D = len(dresses_clothes)
+        O = len(outerwear_clothes)
+        return U*L*(O+1) + D
+
 
     def forward(self,
                 upper_clothes: List[Dict[str, io.BytesIO]] = [],
@@ -42,6 +68,7 @@ class LocalRecSys:
                 # user_photos:List[Dict[str, io.BytesIO]],
                 prompt: str = None,
                 sample_amount: int = 10,
+                calculate_tensors: bool = False,
                ) -> Dict[str, Dict[str, float]]:
         """
         Gets probability for each tag
@@ -69,15 +96,39 @@ class LocalRecSys:
         """
         if prompt == '':
             prompt = None
+        
+        max_sets = self.get_max_sets_amount(
+            upper_clothes,
+            lower_clothes,
+            dresses_clothes,
+            outerwear_clothes,              
+        )
 
-        upper_clothes = self.get_embs_per_category(upper_clothes)
-        lower_clothes = self.get_embs_per_category(lower_clothes)
-        dresses_clothes = self.get_embs_per_category(dresses_clothes)
-        outerwear_clothes = self.get_embs_per_category(outerwear_clothes)
+        if max_sets == 0:
+            logger.warn(f"Can't sample any sets. Not enough clothes")
+            return []
+        
+        if sample_amount > max_sets:
+            logger.warn("Sampling more than it could be."\
+                        f"Sampling {sample_amount}, when max is {max_sets}")
+        
+        if calculate_tensors:
+            upper_clothes = self.get_embs_for_clothes(upper_clothes,
+                                                      return_list=False)
+            lower_clothes = self.get_embs_for_clothes(lower_clothes,
+                                                      return_list=False)
+            dresses_clothes = self.get_embs_for_clothes(dresses_clothes,
+                                                        return_list=False)
+            outerwear_clothes = self.get_embs_for_clothes(outerwear_clothes,
+                                                          return_list=False)
+        else:
+            upper_clothes = self.convert_tensors_from_list(upper_clothes)
+            lower_clothes = self.convert_tensors_from_list(lower_clothes)
+            dresses_clothes = self.convert_tensors_from_list(dresses_clothes)
+            outerwear_clothes = self.convert_tensors_from_list(outerwear_clothes)
 
-
-        if prompt:
-            prompt_features = self._get_text_embedding(prompt)
+        if prompt is not None:
+            prompt_features = self._get_text_embedding(prompt).cpu()
         else:
             prompt_features = None
 
@@ -93,22 +144,26 @@ class LocalRecSys:
                         prompt_features=prompt_features)
                     outfits.append(outfit)
                 
-        for dress in dresses_clothes:
-         
-                outfit = {'clothes':[dress]}
-                self._evaluate_outfit(outfit=outfit,
-                    prompt_features=prompt_features)
+        for dress in dresses_clothes:         
+            outfit = {'clothes':[dress]}
+            self._evaluate_outfit(outfit=outfit,
+                prompt_features=prompt_features)
 
-                outfits.append(outfit)
-
-        for cloth in [*upper_clothes, *lower_clothes, *dresses_clothes, *outerwear_clothes]:
-            del cloth['tensor']
+            outfits.append(outfit)
+        # for outfit in outfits:
+        #     clothes_t = [cloth['tensor'].unsqueeze(0) for cloth in outfit['clothes']]
+        #     outfit['tensor'] = torch.concat(clothes_t).mean(0)
+        #     outfit['tensor'] = self.bytes_converter.torch_to_bytes(outfit['tensor'])
+        # if 'tensor' not in self.return_cloth_fields:
+        #     for cloth in [*upper_clothes, *lower_clothes, *dresses_clothes, *outerwear_clothes]:
+        #         del cloth['tensor']
 
         sorted_outfits = sorted(outfits, key=lambda x: x['score'], reverse=True)
 
         # sample some outfits
         sampled_outfits = self.sample_outfit(sorted_outfits, sample_amount)
-        return self.stay_attributes(sampled_outfits)
+        sampled_outfits_cleared = self.stay_attributes(sampled_outfits)
+        return sampled_outfits_cleared
 
     def stay_attributes(self, outfits):
         outfits_cleared_fields = []
@@ -120,7 +175,8 @@ class LocalRecSys:
                 for parameter in self.return_cloth_fields:
                     new_cloth[parameter] = cloth[parameter]
                 outfit_clothes.append(new_cloth)
-            outfits_cleared_fields.append({'clothes':outfit_clothes})
+            outfits_cleared_fields.append({'clothes':outfit_clothes,})
+                                        #    'tensor':outfit['tensor']})
         return outfits_cleared_fields             
 
     def _evaluate_outfit(self, outfit, prompt_features):
@@ -139,13 +195,40 @@ class LocalRecSys:
         outfit['score'] = 25 * np.mean(prompt_correlations) + clothes_score
         outfit['clothes_score'] = clothes_score
         outfit['prompt_corr'] = np.mean(prompt_correlations)
-        
-    def get_embs_per_category(self, clothes:List[Dict[str, io.BytesIO]]):
+
+    def convert_tensors_from_list(self, clothes:List[Dict[str, list]]):
+        converted_clothes = []
+        for cloth in clothes:
+            cloth_copy = deepcopy(cloth)
+            tensor = torch.tensor(cloth['tensor'])
+            cloth_copy['tensor'] = tensor
+            # print(self.bytes_converter.bytes_to_torch(tensor))
+            converted_clothes.append(cloth_copy)           
+        return converted_clothes
+
+    def convert_tensors_from_bytes(self,
+                                   clothes: List[Dict[str, io.BytesIO]]):
+        converted_clothes = []
+        for cloth in clothes:
+            cloth_copy = deepcopy(cloth)
+            tensor = cloth['tensor']
+            cloth_copy['tensor'] = self.bytes_converter.bytes_to_torch(tensor)
+            # print(self.bytes_converter.bytes_to_torch(tensor))
+            converted_clothes.append(cloth_copy)
+            
+        return converted_clothes
+
+    def get_embs_for_clothes(self,
+                             clothes: List[Dict[str, io.BytesIO]],
+                             return_list=True):
         clothes = self.prepare_clothes(clothes)
         pil_clothes = [cloth['cloth'] for cloth in clothes]
         image_features = self._get_images_embedding(pil_clothes)
         for cloth, tensor in zip(clothes, image_features):
-            cloth['tensor'] = tensor
+            if return_list:
+                cloth['tensor'] = tensor.tolist()
+            else:
+                cloth['tensor'] = tensor
         return clothes
 
 
@@ -214,29 +297,31 @@ class LocalRecSys:
 
         image_features = self.model.get_image_features(**image_inputs)
 
-        return image_features
+        return image_features.cpu()
 
     def sample_outfit(self, outfits, sample_amount):
 
         scores = torch.tensor([outfit['score']/30 for outfit in outfits])
         normalized_scores = self.softmax(scores)
 
-        top_p_scores = None
-        top_p_index = None
-        top_p = 0.9
-        for i, score in enumerate(normalized_scores):
-            if normalized_scores[:i].sum() > top_p:
-                top_p_scores = normalized_scores[:i]
-                top_p_index = i
-                break
-        else:
-            logger.info("Got case top_p not reached")
-            top_p_scores = normalized_scores
+        if self.use_top_p:
+            top_p_scores = None
+            top_p_index = None
+            top_p = 0.9
+            for i, score in enumerate(normalized_scores):
+                if normalized_scores[:i].sum() > top_p:
+                    top_p_scores = normalized_scores[:i]
+                    top_p_index = i
+                    break
+            else:
+                logger.info("Got case top_p not reached")
+                top_p_scores = normalized_scores
 
-        new_scores = sum_normalize(top_p_scores)
+            new_scores = sum_normalize(top_p_scores)
+        else:
+            new_scores = normalized_scores
 
         indexes = np.arange(len(new_scores))
-        # print(indexes, sample_amount, new_scores)
         sampled_indexes = np.random.choice(indexes,(sample_amount,), p=new_scores ,replace=False)
         filtered_outfit = [outfits[i] for i in sampled_indexes]
         return filtered_outfit

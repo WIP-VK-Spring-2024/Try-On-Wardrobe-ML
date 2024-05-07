@@ -52,10 +52,3 @@ if __name__ == '__main__':
     out_im, json_dict = pe(image)
     
     out_im.save("/usr/src/app/volume/data/pose/posed_human1.png")
-    # pe(
-    #    "/usr/src/app/volume/data/resized/resized_human.png",
-    #    "/usr/src/app/volume/data/pose/keypoints.json",
-    #    "/usr/src/app/volume/data/pose/posed_human.png",
-    #    )
-
-# python3 -m app.pkg.ml.try_on.preprocessing.pose 

@@ -2,59 +2,59 @@ version: "3.8"
 
 services:
 
-  # cut-model:
-  #   container_name: cut-model
+  cut-model:
+    container_name: cut-model
     
-  #   restart: unless-stopped
+    restart: unless-stopped
 
-  #   build:
-  #     context: .
-  #     dockerfile: docker/model/Dockerfile
-  #   deploy: # nvidia settings
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #          #   count: 1
-  #             capabilities: [gpu]
-  #   environment:
-  #     - NVIDIA_VISIBLE_DEVICES=all
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile
+    deploy: # nvidia settings
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+           #   count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
 
-  #   env_file:
-  #     - .env
+    env_file:
+      - .env
 
-  #   volumes:
-  #     - ${DATA_VOLUME}:/usr/src/app/volume
-  #     - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
+      - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
 
-  #   command: ["python3", "-m", "app.pkg.workers.cut.main"]
+    command: ["python3", "-m", "app.pkg.workers.cut.main"]
 
-  # try-on-model:
-  #   container_name: try-on-model
+  try-on-model:
+    container_name: try-on-model
     
-  #   restart: unless-stopped
+    restart: unless-stopped
 
-  #   build:
-  #     context: .
-  #     dockerfile: docker/model/Dockerfile
-  #   deploy: # nvidia settings
-  #     resources:
-  #       reservations:
-  #         devices:
-  #           - driver: nvidia
-  #          #   count: 1
-  #             capabilities: [gpu]
-  #   environment:
-  #     - NVIDIA_VISIBLE_DEVICES=all
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile
+    deploy: # nvidia settings
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+           #   count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
 
-  #   env_file:
-  #     - .env
+    env_file:
+      - .env
 
-  #   volumes:
-  #     - ${DATA_VOLUME}:/usr/src/app/volume
-  #     - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
+      - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
 
-  #   command: ["python3", "-m", "app.pkg.workers.try_on.main"]
+    command: ["python3", "-m", "app.pkg.workers.try_on.main"]
 
   outfit-gen-model:
     container_name: outfit-gen-model
@@ -82,6 +82,33 @@ services:
       - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
 
     command: ["python3", "-m", "app.pkg.workers.outfit_gen.main"]
+
+  recsys-model:
+    container_name: recsys-model
+    
+    restart: unless-stopped
+
+    build:
+      context: .
+      dockerfile: docker/model/Dockerfile
+    deploy: # nvidia settings
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+           #   count: 1
+              capabilities: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+
+    env_file:
+      - .env
+
+    volumes:
+      - ${DATA_VOLUME}:/usr/src/app/volume
+      - ${ML__WEIGHTS_PATH}:${ML__WEIGHTS_PATH}
+
+    command: ["python3", "-m", "app.pkg.workers.recsys.main"]
 
 
 networks:

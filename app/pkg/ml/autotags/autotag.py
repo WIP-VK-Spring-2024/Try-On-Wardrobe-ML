@@ -7,7 +7,9 @@ from torch.nn import Softmax
 from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
+from app.pkg.logger import get_logger
 
+logger = get_logger(__name__)
 
 def max_normalize(probs):
     return probs/probs.max().item()
@@ -79,8 +81,9 @@ class AutoTagger:
         result_probabilities = {}
         for tag_group, text_tag_list in tags.items():
             result_probabilities[tag_group] = {}
+            if len(text_tag_list) == 0:
+                continue
 
-            # self.processor(text=text_tag_list, images=image, return_tensors="pt", padding=True)
             text_inputs = self.tokenizer(text_tag_list, padding=True, return_tensors="pt")
             self._input_to_device(text_inputs)
 

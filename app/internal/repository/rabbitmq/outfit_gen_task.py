@@ -3,12 +3,13 @@ from typing import AsyncGenerator
 
 from app.internal.repository.rabbitmq.base_repository import BaseRepository
 from app.pkg.models import OutfitGenTaskCmd
+from app.pkg.settings import settings
 
 
 class OutfitGenTaskRepository(BaseRepository):
     """Repository for outfit generation model task queue."""
 
-    QUEUE_NAME: str = "outfit_gen"
+    QUEUE_NAME: str = settings.ML.OUTFIT_GEN_TASK_QUEUE
 
     async def create(
         self,
