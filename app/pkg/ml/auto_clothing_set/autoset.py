@@ -29,13 +29,11 @@ class LocalRecSys:
     def __init__(self,
                  return_cloth_fields = ["clothes_id",],
                  use_top_p=False,
-                 calculate_tensors=False,
                  ):
         """
         Args:
             return_cloth_fields - fields, that must be in each returning cloth
             use_top_p - is need to use top_p algorithm
-            calculate_tensors - is need to recalculate tensors data
         """
         self.device = get_device("cuda:1")
         self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
@@ -43,7 +41,6 @@ class LocalRecSys:
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
         self.softmax = torch.nn.Softmax(dim=0)
         self.use_top_p = use_top_p
-        self.calculate_tensors = calculate_tensors
 
         self.return_cloth_fields = return_cloth_fields
         self.bytes_converter = BytesConverter()
@@ -71,6 +68,7 @@ class LocalRecSys:
                 # user_photos:List[Dict[str, io.BytesIO]],
                 prompt: str = None,
                 sample_amount: int = 10,
+                calculate_tensors: bool = False,
                ) -> Dict[str, Dict[str, float]]:
         """
         Gets probability for each tag
@@ -114,7 +112,7 @@ class LocalRecSys:
             logger.warn("Sampling more than it could be."\
                         f"Sampling {sample_amount}, when max is {max_sets}")
         
-        if self.calculate_tensors:
+        if calculate_tensors:
             upper_clothes = self.get_embs_for_clothes(upper_clothes,
                                                       return_list=False)
             lower_clothes = self.get_embs_for_clothes(lower_clothes,
@@ -126,8 +124,8 @@ class LocalRecSys:
         else:
             upper_clothes = self.convert_tensors_from_list(upper_clothes)
             lower_clothes = self.convert_tensors_from_list(lower_clothes)
-            dresses_clothes = self.convert_tensors_from_list(dresses_clothes,)
-            outerwear_clothes = self.convert_tensors_from_list(outerwear_clothes,)
+            dresses_clothes = self.convert_tensors_from_list(dresses_clothes)
+            outerwear_clothes = self.convert_tensors_from_list(outerwear_clothes)
 
         if prompt is not None:
             prompt_features = self._get_text_embedding(prompt)
@@ -225,7 +223,7 @@ class LocalRecSys:
                              return_list=True):
         clothes = self.prepare_clothes(clothes)
         pil_clothes = [cloth['cloth'] for cloth in clothes]
-        image_features = self._get_images_embedding(pil_clothes).cpu()
+        image_features = self._get_images_embedding(pil_clothes)
         for cloth, tensor in zip(clothes, image_features):
             if return_list:
                 cloth['tensor'] = tensor.tolist()
@@ -299,7 +297,7 @@ class LocalRecSys:
 
         image_features = self.model.get_image_features(**image_inputs)
 
-        return image_features
+        return image_features.cpu()
 
     def sample_outfit(self, outfits, sample_amount):
 

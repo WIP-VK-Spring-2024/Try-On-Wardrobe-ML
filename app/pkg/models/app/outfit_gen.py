@@ -14,7 +14,7 @@ __all__ = [
     "OutfitGenClothes",
     "OutfitGenTaskCmd",
     "OutfitGenResponseCmd",
-    "Outfit",
+    "OutfitGen",
     "OutfitGenClothesCategory",
 ]
 
@@ -51,9 +51,9 @@ class OutfitGenTaskCmd(BaseOutfitGenModel):
 class OutfitGenClothes(BaseOutfitGenModel):
     clothes_id: UUID4 = OutfitGenFields.clothes_id
 
-class Outfit(BaseOutfitGenModel):
+class OutfitGen(BaseOutfitGenModel):
     clothes: List[OutfitGenClothes]
 
 class OutfitGenResponseCmd(BaseOutfitGenModel, StatusResponse):
     user_id: UUID4 = OutfitGenFields.user_id
-    outfits: Optional[List[Outfit]]
+    outfits: Optional[List[OutfitGen]]
