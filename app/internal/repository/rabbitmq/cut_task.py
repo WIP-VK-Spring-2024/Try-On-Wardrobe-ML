@@ -3,12 +3,13 @@ from typing import AsyncGenerator
 
 from app.internal.repository.rabbitmq.base_repository import BaseRepository
 from app.pkg.models import CutTaskCmd
+from app.pkg.settings import settings
 
 
 class CutTaskRepository(BaseRepository):
     """Repository for cut model task queue."""
 
-    QUEUE_NAME: str = "cut"
+    QUEUE_NAME: str = settings.ML.CUT_TASK_QUEUE
 
     async def create(
         self,

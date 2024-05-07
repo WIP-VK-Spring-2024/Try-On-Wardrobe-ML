@@ -3,12 +3,12 @@ from typing import AsyncGenerator
 
 from app.internal.repository.rabbitmq.base_repository import BaseRepository
 from app.pkg.models import CutResponseCmd
-
+from app.pkg.settings import settings
 
 class CutRespRepository(BaseRepository):
     """Repository for cut model response queue."""
 
-    QUEUE_NAME: str = "cut_response"
+    QUEUE_NAME: str = settings.ML.CUT_RESPONSE_QUEUE
 
     async def create(
         self,

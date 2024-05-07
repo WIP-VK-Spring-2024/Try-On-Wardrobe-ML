@@ -1,20 +1,20 @@
 """Models of outfit gen model."""
 
 import uuid
-from typing import List
+from typing import List, Optional
 
 from pydantic.fields import Field
 from pydantic import UUID4
 
 from app.pkg.models.base import BaseModel
-from app.pkg.settings import settings
 from app.pkg.models.app.image_category import ImageCategoryAutoset
+from app.pkg.models.app.status_response import StatusResponse
 
 __all__ = [
     "OutfitGenClothes",
     "OutfitGenTaskCmd",
     "OutfitGenResponseCmd",
-    "Outfit",
+    "OutfitGen",
     "OutfitGenClothesCategory",
 ]
 
@@ -51,9 +51,9 @@ class OutfitGenTaskCmd(BaseOutfitGenModel):
 class OutfitGenClothes(BaseOutfitGenModel):
     clothes_id: UUID4 = OutfitGenFields.clothes_id
 
-class Outfit(BaseOutfitGenModel):
+class OutfitGen(BaseOutfitGenModel):
     clothes: List[OutfitGenClothes]
 
-class OutfitGenResponseCmd(BaseOutfitGenModel):
+class OutfitGenResponseCmd(BaseOutfitGenModel, StatusResponse):
     user_id: UUID4 = OutfitGenFields.user_id
-    outfits: List[Outfit]
+    outfits: Optional[List[OutfitGen]]

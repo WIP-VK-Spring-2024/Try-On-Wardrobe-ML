@@ -3,12 +3,12 @@ from typing import AsyncGenerator
 
 from app.internal.repository.rabbitmq.base_repository import BaseRepository
 from app.pkg.models import TryOnResponseCmd
-
+from app.pkg.settings import settings
 
 class TryOnRespRepository(BaseRepository):
     """Repository for try on model response queue."""
 
-    QUEUE_NAME: str = "try_on_response"
+    QUEUE_NAME: str = settings.ML.TRY_ON_RESPONSE_QUEUE
 
     async def create(
         self,
