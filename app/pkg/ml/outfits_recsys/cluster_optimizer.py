@@ -124,9 +124,10 @@ class ClustersOptimizer:
             logger.warn(f"Error while calculating optimal k. Set up to {optimal_k}. Possible reason: little data. Error: {e}")
             calculated_params = False
 
-        if np.isnan(optimal_k):
-            logger.warn("Calculated optimal_k is None")
+        if np.isnan(optimal_k) or optimal_k <= 0:
+            logger.warn("Calculated optimal_k is None or <= 0")
             optimal_k = max_possible_k
+
 
         if self.save_plots and calculated_params:
             self.plot_orig_inertia(k_range, wcss)
