@@ -45,7 +45,7 @@ from diffusers.models.embeddings import (
     Timesteps,
 )
 from diffusers.models.modeling_utils import ModelMixin
-from src.unet_block_hacked_garmnet import (
+from app.pkg.ml.try_on.idm_vton.IDM_VTON.src.unet_block_hacked_garmnet import (
     UNetMidBlock2D,
     UNetMidBlock2DCrossAttn,
     UNetMidBlock2DSimpleCrossAttn,

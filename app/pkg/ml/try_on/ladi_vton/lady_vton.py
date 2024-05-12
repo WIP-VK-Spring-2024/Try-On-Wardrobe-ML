@@ -29,6 +29,7 @@ from app.pkg.ml.try_on.ladi_vton.src.utils.set_seeds import set_seed
 from app.pkg.ml.try_on.ladi_vton.src.vto_pipelines.tryon_pipe import StableDiffusionTryOnePipeline
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
 from app.pkg.models.app.image_category import ImageCategory
+from app.pkg.logger import get_logger
 from app.pkg.settings import settings
 
 #PROJECT_ROOT = Path(__file__).absolute().parents[1].absolute()
@@ -39,6 +40,7 @@ os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
 # Will error if the minimal version of diffusers is not installed. Remove at your own risks.
 check_min_version("0.10.0.dev0")
 
+logger = get_logger(__name__)
 
 
 class LadyVton(torch.nn.Module):
@@ -160,7 +162,7 @@ class LadyVton(torch.nn.Module):
             im_mask = self.to_batch(input_data['im_mask'])
             prompt_category = input_data['category']
 
-            if input_data["cloth_desc"][0] is not None and len(input_data["cloth_desc"][0]) > 0:
+            if len(input_data["cloth_desc"])>0 and input_data["cloth_desc"][0] is not None and len(input_data["cloth_desc"][0]) > 0:
                 cloth_desc = input_data['cloth_desc']
             else:
                 cloth_desc = None
@@ -217,6 +219,7 @@ class LadyVton(torch.nn.Module):
             text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}'
                     for category in prompt_category]
 
+        logger.info(f"Setting text in try on pipeline = {text}")
         # Tokenize text
         tokenized_text = self.tokenizer(text,
                                         max_length=self.tokenizer.model_max_length,

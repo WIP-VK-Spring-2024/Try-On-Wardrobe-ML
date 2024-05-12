@@ -47,7 +47,7 @@ from diffusers.models.embeddings import (
 
 
 from diffusers.models.modeling_utils import ModelMixin
-from src.unet_block_hacked_tryon import (
+from app.pkg.ml.try_on.idm_vton.IDM_VTON.src.unet_block_hacked_tryon import (
     UNetMidBlock2D,
     UNetMidBlock2DCrossAttn,
     UNetMidBlock2DSimpleCrossAttn,
@@ -58,7 +58,7 @@ from diffusers.models.resnet import Downsample2D, FirDownsample2D, FirUpsample2D
 from diffusers.models.transformer_2d import Transformer2DModel
 import math
 
-from ip_adapter.ip_adapter import Resampler
+from app.pkg.ml.try_on.idm_vton.IDM_VTON.ip_adapter.ip_adapter import Resampler
 
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
@@ -770,7 +770,7 @@ class UNet2DConditionModel(ModelMixin, ConfigMixin, UNet2DConditionLoadersMixin)
 
 
 
-        from ip_adapter.attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor
+        from app.pkg.ml.try_on.idm_vton.IDM_VTON.ip_adapter.attention_processor import IPAttnProcessor2_0 as IPAttnProcessor, AttnProcessor2_0 as AttnProcessor
 
         attn_procs = {}
         for name in self.attn_processors.keys():

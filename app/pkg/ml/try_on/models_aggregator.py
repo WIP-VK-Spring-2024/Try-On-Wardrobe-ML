@@ -1,4 +1,5 @@
 from typing import List, Dict, Union
+import os
 import io
 from copy import deepcopy
 from enum import Enum
@@ -14,6 +15,12 @@ from app.pkg.ml.buffer_converters import BytesConverter
 from app.pkg.models.app.image_category import ImageCategory
 
 from app.pkg.logger import get_logger
+
+from app.pkg.settings import settings
+
+torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
+os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)
+os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
 
 logger = get_logger(__name__)
 
@@ -97,6 +104,7 @@ class TryOnAggregator:
             'cloth':[],
             'im_mask':[],
             'image_human_orig':[],
+            'cloth_desc':[],
         }
 
         for cloth in clothes:
@@ -104,9 +112,13 @@ class TryOnAggregator:
 
             human_per_cloth = deepcopy(human)
             human_per_cloth['category'] = cloth["category"]
+            # human_per_cloth['cloth_desc'] = cloth["cloth_desc"]
             self.preprocessor.prepare_human(human_per_cloth)
 
             input_data['cloth'].append(cloth['cloth'])
+            if cloth['cloth_desc'] is not None and cloth['cloth_desc'] != '':
+                input_data['cloth_desc'].append(cloth['cloth_desc'])
+            
             input_data['image'].append(human_per_cloth['image'])
             input_data['inpaint_mask'].append(human_per_cloth['inpaint_mask'])
             input_data['pose_map'].append(human_per_cloth['pose_map'])
@@ -218,8 +230,9 @@ class TryOnAggregator:
         """
         if to_pil:
             human["image_human_orig"] = self.bytes_converter.bytes_to_image(
-
-            human["image_human_orig"])
+                human["image_human_orig"]
+            )
+            human['pose'] = self.bytes_converter.bytes_to_image(human['pose'])
 
             human["parse_orig"] = self.bytes_converter.bytes_to_image(
                 human["parse_orig"]

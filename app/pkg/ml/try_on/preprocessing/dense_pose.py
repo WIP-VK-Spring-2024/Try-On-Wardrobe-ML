@@ -24,9 +24,12 @@ from densepose.vis.extractor import (
 
 class DensePoseEstimation:
 
-    def __init__(self):
+    def __init__(self, cfg_path = None):
         self.WEIGHTS_PATH = f"{settings.ML.WEIGHTS_PATH}/dense_pose.pkl"
-        self.cfg_path = "app/pkg/ml/try_on/preprocessing/detectron2/projects/DensePose/configs/densepose_rcnn_R_50_FPN_s1x.yaml"
+        if cfg_path is None:
+            self.cfg_path = "app/pkg/ml/try_on/preprocessing/detectron2/projects/DensePose/configs/densepose_rcnn_R_50_FPN_s1x.yaml"
+        else:
+            self.cfg_path = cfg_path
         self.setup()
     
     # setup cfg
@@ -62,48 +65,47 @@ class DensePoseEstimation:
 
         self.dump_extractor = DensePoseResultExtractor()
 
-    def __call__(self, input_path, output_image_path, output_npz_path):
+    def __call__(self, pil_image):
         """
         input_path - path to resized image (to load)
         output_path - path to img (to save)
         output_npz_path - path to .npz (to save)
         """
-        image = cv2.imread(input_path)
-        if image is None:
-            raise Exception(f"Image {input_path} is not found for pose estimation")
-        assert image.shape == (512, 384, 3)
-        
-        image_data = {"file_name": input_path,
+        # image = cv2.imread(input_path)
+        # if image is None:
+        #     raise Exception(f"Image {input_path} is not found for pose estimation")
+        # assert image.shape == (512, 384, 3)
+        image = np.array(pil_image)
+        image_data = {
+            #"file_name": input_path,
                       "image": image}
 
         with torch.no_grad():
             outputs = self.predictor(image)["instances"]
 
             # visual (.png, .jpg, etc.) file creation        
-            self.postprocess_outputs(image_data,
-                                     outputs,
-                                     output_image_path)
+            image = self.postprocess_outputs(image_data, outputs)
 
             # .npz file creation
-            return self.dump_post_process(image_data,
+            return image, self.dump_post_process(image_data,
                                    outputs,
-                                   output_npz_path)
+                                   )
             
             # checking for correct version of outputs format
             # assert isinstance(outputs.pred_densepose, DensePoseChartPredictorOutput)
 
 
-    def postprocess_outputs(self, image_data, outputs, out_fname):
+    def postprocess_outputs(self, image_data, outputs):
         image = cv2.cvtColor(image_data["image"], cv2.COLOR_BGR2GRAY)
         image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
         data = self.extractor(outputs)
         image_vis = self.visualizer.visualize(image, data)
-        
-        cv2.imwrite(out_fname, image_vis)
+        return image_vis
+        # cv2.imwrite(out_fname, image_vis)
 
-    def dump_post_process(self, image_data, outputs, out_fname):
-        image_fpath = image_data["file_name"]
-        result = {"file_name": image_fpath}
+    def dump_post_process(self, image_data, outputs):
+        # image_fpath = image_data["file_name"]
+        result = {}# {"file_name": image_fpath}
         if outputs.has("scores"):
             result["scores"] = outputs.get("scores").cpu()
         if outputs.has("pred_boxes"):
