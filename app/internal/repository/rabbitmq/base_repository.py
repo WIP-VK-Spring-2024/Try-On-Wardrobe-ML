@@ -9,12 +9,39 @@ from app.internal.repository.rabbitmq.handlers.collect_response import (
     load_response,
 )
 from app.pkg.models.base import BaseModel
+from app.pkg.models import RabbitMQInfo
 
 
 class BaseRepository:
     """Base repository for rabbitmq."""
 
     QUEUE_NAME: str = "default"
+    AVG_RESPONSE_TIME: int = 0
+
+    async def get_queue_info(self) -> RabbitMQInfo:
+        """Get the number of consumers listening to the queue."""
+        avg_response_time = self.AVG_RESPONSE_TIME
+        
+        async with get_connection() as channel:
+            try:
+                queue = await channel.get_queue(self.QUEUE_NAME)
+            except aio_pika.exceptions.ChannelNotFoundEntity as exc:
+                return RabbitMQInfo(avg_response_time=avg_response_time)
+
+        consumer_count = queue.declaration_result.consumer_count
+        message_count = queue.declaration_result.message_count
+
+        is_listening = consumer_count > 0
+        response_time = avg_response_time * message_count
+
+        res_model = RabbitMQInfo(
+            consumer_count=consumer_count,
+            message_count=message_count,
+            avg_response_time=avg_response_time,
+            is_listening=is_listening,
+            response_time=response_time
+        )
+        return res_model
 
     async def _create(
         self,
