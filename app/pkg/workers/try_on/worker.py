@@ -13,7 +13,7 @@ from app.pkg.models import TryOnTaskCmd, TryOnResponseCmd, TryOnClothes, ImageCa
 from app.pkg.logger import get_logger
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
-from app.pkg.ml.try_on.lady_vton import LadyVtonAggregator
+from app.pkg.ml.try_on.models_aggregator import LadyVtonAggregator
 from app.pkg.models.exceptions.amazon_s3 import AmazonS3Error
 from app.pkg.settings import settings
 

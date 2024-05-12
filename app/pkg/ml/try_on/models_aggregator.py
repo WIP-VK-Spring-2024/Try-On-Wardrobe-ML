@@ -1,11 +1,13 @@
 from typing import List, Dict, Union
 import io
 from copy import deepcopy
+from enum import Enum
 
 import torch
 
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
 from app.pkg.ml.try_on.ladi_vton.lady_vton import LadyVton
+from app.pkg.ml.try_on.idm_vton.model import IDM_VTON
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
 from app.pkg.ml.try_on.postprocessing.fix_face import FaceFixer
 from app.pkg.ml.buffer_converters import BytesConverter
@@ -15,11 +17,24 @@ from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
 
-class LadyVtonAggregator:
+class TryOnModels(Enum):
+    LADY_VTON = "LADY_VTON"
+    IDM_VTON = "IDM_VTON"
 
-    def __init__(self):
+
+class TryOnAggregator:
+
+    def __init__(self,
+                 model_type: TryOnModels = TryOnModels.LADY_VTON):
+        #  TODO: in preprocessing insert resizing to full hd (if idm vton chosen)
         self.preprocessor = LadyVtonInputPreprocessor()
-        self.model = LadyVton()
+        if model_type == TryOnModels.LADY_VTON:
+            self.model = LadyVton()
+        elif model_type == TryOnModels.IDM_VTON:
+            self.model = IDM_VTON()
+        else:
+            raise ValueError("Not valid tryon model type")
+ 
         self.face_fix_model = FaceFixer()
         self.bytes_converter = BytesConverter()
 

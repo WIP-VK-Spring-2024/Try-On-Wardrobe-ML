@@ -85,15 +85,15 @@ class DensePoseEstimation:
                                      output_image_path)
 
             # .npz file creation
-            self.dump_post_process(image_data,
+            return self.dump_post_process(image_data,
                                    outputs,
                                    output_npz_path)
+            
             # checking for correct version of outputs format
-            assert isinstance(outputs.pred_densepose, DensePoseChartPredictorOutput)
+            # assert isinstance(outputs.pred_densepose, DensePoseChartPredictorOutput)
 
 
     def postprocess_outputs(self, image_data, outputs, out_fname):
-    
         image = cv2.cvtColor(image_data["image"], cv2.COLOR_BGR2GRAY)
         image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
         data = self.extractor(outputs)
@@ -114,18 +114,19 @@ class DensePoseEstimation:
                 # elif isinstance(outputs.pred_densepose, DensePoseEmbeddingPredictorOutput):
                 #     extractor = DensePoseOutputsExtractor()
                 result["pred_densepose"] = self.dump_extractor(outputs)[0]
-        results = [result]
-        with open(out_fname, "wb") as hFile:
-            torch.save(results, hFile)
+        return result
+        # results = [result]
+        # with open(out_fname, "wb") as hFile:
+        #     torch.save(results, hFile)
 
 
-if __name__ == '__main__':
-    dpe = DensePoseEstimation()
-    dpe(
-       "/usr/src/app/volume/data/resized/resized_human.png",
-       "/usr/src/app/volume/data/dense_pose/dense_pose_human.png",
-       "/usr/src/app/volume/data/dense_pose/dense_pose_human.npz",
-       )
+# if __name__ == '__main__':
+#     dpe = DensePoseEstimation()
+#     dpe(
+#        "/usr/src/app/volume/data/resized/resized_human.png",
+#        "/usr/src/app/volume/data/dense_pose/dense_pose_human.png",
+#        "/usr/src/app/volume/data/dense_pose/dense_pose_human.npz",
+#        )
 
 # if isinstance(outputs.pred_densepose, DensePoseChartPredictorOutput):
 #     print("extractor = DensePoseResultExtractor()")
