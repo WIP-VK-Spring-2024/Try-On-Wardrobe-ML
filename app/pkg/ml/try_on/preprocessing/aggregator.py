@@ -51,7 +51,7 @@ class ClothProcessor(BaseProcessor):
         """
         image = self.bytes_converter.bytes_to_image(image_bytes)
         no_background_image = self.model_background(
-            image=image,
+            cloth_im=image,
             point_sam_strategy=point_sam_strategy)
         no_background_image_bytes = self.bytes_converter.image_to_bytes(no_background_image)
 
