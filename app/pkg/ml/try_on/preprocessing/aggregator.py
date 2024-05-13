@@ -9,7 +9,8 @@ from app.pkg.ml.try_on.preprocessing.preprocessing import Resizer
 
 from app.pkg.ml.try_on.preprocessing.pose import PoseEstimation
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor, BackgroundModels
-from app.pkg.ml.try_on.preprocessing.human_parsing import HumanParsing 
+from app.pkg.ml.try_on.preprocessing.human_parsing import HumanParsing
+from app.pkg.ml.try_on.preprocessing.cut_sam_pipeline.sam_points_strategies import PointsFormingSamStrategies
 
 
 class BaseProcessor:
@@ -21,11 +22,23 @@ class ClothProcessor(BaseProcessor):
     """
     Class for processing clothes. Puts into worker
     """
-    def __init__(self, model_type=BackgroundModels.BriaRMBG):
+    def __init__(self,
+                 model_type=BackgroundModels.BriaRMBG,
+                 light_weight=False):
+        """
+        model_type - type of segmentaton model used
+        light_weight - is need to use light weight version of model (only for SAM pipeline)
+        """
         super().__init__()
-        self.model_background = ClothPreprocessor(model_type)        
+        self.model_type = model_type
+        self.model_background = ClothPreprocessor(model_type, light_weight)
 
-    def consistent_forward(self, image_bytes:io.BytesIO) -> Dict[str, io.BytesIO]:
+    def consistent_forward(self,
+                           image_bytes:io.BytesIO,
+                           point_sam_strategy: PointsFormingSamStrategies \
+                    = PointsFormingSamStrategies.strategy_0,
+
+                           ) -> Dict[str, io.BytesIO]:
         """
         Processes cloth image
         Removes background from input image buffer
@@ -37,7 +50,9 @@ class ClothProcessor(BaseProcessor):
             result - dict with Dict[str, io.BytesIO] format
         """
         image = self.bytes_converter.bytes_to_image(image_bytes)
-        no_background_image = self.model_background(image)
+        no_background_image = self.model_background(
+            image=image,
+            point_sam_strategy=point_sam_strategy)
         no_background_image_bytes = self.bytes_converter.image_to_bytes(no_background_image)
 
         result = {}

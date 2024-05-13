@@ -43,9 +43,11 @@ class ClothPreprocessor:
         if model_type == BackgroundModels.SegFormerB3:
             self.net = AutoModelForSemanticSegmentation.from_pretrained("sayeed99/segformer_b3_clothes")
             self.processor = SegformerImageProcessor.from_pretrained("sayeed99/segformer_b3_clothes")
+            self.net = self.net.to(self.device)
 
         elif model_type == BackgroundModels.BriaRMBG:
             self.net = BriaRMBG.from_pretrained("briaai/RMBG-1.4")
+            self.net = self.net.to(self.device)
 
         elif model_type == BackgroundModels.SamPipeline:
             self.net = SegformerSAM_Pipeline(lightweight)
@@ -53,7 +55,6 @@ class ClothPreprocessor:
         else:
             raise ValueError("Not valid cut model name")
 
-        self.net = self.net.to(self.device)
 
         # prepare input
         self.model_input_size = [1024,1024]
@@ -107,11 +108,12 @@ class ClothPreprocessor:
                 # clear memory
                 del outputs
             elif self.model_type == BackgroundModels.SamPipeline:
-                cloth_mask = self.net.forward(
+                cloth_mask_t = self.net.forward(
                     image,
                     save_meta=False,
-                    point_sam_strategy,
+                    point_sam_strategy=point_sam_strategy,
                 )
+                cloth_mask = cloth_mask_t.numpy() 
 
         pil_im = Image.fromarray(cloth_mask)
 
@@ -181,10 +183,17 @@ class ClothPreprocessor:
         no_bg_image.paste(orig_image.convert("RGBA"), mask=pil_im.convert("RGBA"))
         return no_bg_image
 
-    def __call__(self, cloth_im):
+    def __call__(self,
+                 cloth_im,
+                 point_sam_strategy: PointsFormingSamStrategies \
+                    = PointsFormingSamStrategies.strategy_0,
+
+                 ):
         """
         cloth_im - pil image of cloth
         """
-        im_no_background = self.remove_background(cloth_im, save_mask=False)["cloth_no_background"]
+        im_no_background = self.remove_background(cloth_im,
+                                                  save_mask=False,
+                                                  point_sam_strategy=point_sam_strategy)["cloth_no_background"]
         crop_and_pad = self.crop_and_pad(im_no_background)
         return crop_and_pad

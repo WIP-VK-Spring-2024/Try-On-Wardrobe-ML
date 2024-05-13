@@ -28,7 +28,7 @@ class SegformerSAM_Pipeline:
         self.model_input_size = [1024,1024]
 
     def forward(self,
-                pil_image:Image,
+                image, # np array
                 point_sam_strategy: PointsFormingSamStrategies \
                     = PointsFormingSamStrategies.strategy_0,
                 save_meta = False,
@@ -40,16 +40,14 @@ class SegformerSAM_Pipeline:
         Returns {"cloth_no_background":no_bg_image,
                  "cloth_mask": pil_im}
         """
-        image = np.array(pil_image.convert('RGB'))
 
         with torch.no_grad():
             inputs = self.pre_segm_processor(image, return_tensors="pt").to(self.device)
             outputs = self.pre_segm_model(**inputs)
             logits = outputs.logits.cpu().detach()
-
             upsampled_logits = nn.functional.interpolate(
                 logits,
-                size=pil_image.size[::-1],
+                size=image.shape[:2],
                 mode="bilinear",
                 align_corners=False,
             )
