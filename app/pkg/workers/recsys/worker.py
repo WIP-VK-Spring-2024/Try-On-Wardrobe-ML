@@ -77,7 +77,7 @@ class RecSysWorker:
                     status_code=status.HTTP_200_OK,
                     message=f"Successfully generated {len(outfit_ids)} clothes.",
                 )
-                logger.debug("End pipeline, generated clothes %s: [%s]", len(outfit_ids), outfit_ids)
+                logger.debug("End pipeline, generated %s clothes for user_id: [%s]", len(outfit_ids), message.user_id)
             except Exception as exc:
                 logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = RecSysResponseCmd(user_id=message.user_id, message=str(exc))
