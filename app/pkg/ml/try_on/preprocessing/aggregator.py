@@ -23,7 +23,7 @@ class ClothProcessor(BaseProcessor):
     Class for processing clothes. Puts into worker
     """
     def __init__(self,
-                 model_type=BackgroundModels.BriaRMBG,
+                 model_type=BackgroundModels.SamPipeline,
                  light_weight=False):
         """
         model_type - type of segmentaton model used
@@ -32,11 +32,12 @@ class ClothProcessor(BaseProcessor):
         super().__init__()
         self.model_type = model_type
         self.model_background = ClothPreprocessor(model_type, light_weight)
+        self.usage_counter = 0
+        self.strategies = [strategy.value for strategy in PointsFormingSamStrategies]
 
     def consistent_forward(self,
                            image_bytes:io.BytesIO,
-                           point_sam_strategy: PointsFormingSamStrategies \
-                    = PointsFormingSamStrategies.strategy_0,
+                           point_sam_strategy=None,
 
                            ) -> Dict[str, io.BytesIO]:
         """
@@ -50,6 +51,18 @@ class ClothProcessor(BaseProcessor):
             result - dict with Dict[str, io.BytesIO] format
         """
         image = self.bytes_converter.bytes_to_image(image_bytes)
+        
+        # selecting strategy to get points
+        if point_sam_strategy is None:
+            if self.usage_counter >= len(self.strategies):
+                self.usage_counter = 0
+
+            point_sam_strategy = self.strategies[self.usage_counter]
+        else:
+            point_sam_strategy = point_sam_strategy.value
+        self.usage_counter += 1
+
+
         no_background_image = self.model_background(
             cloth_im=image,
             point_sam_strategy=point_sam_strategy)

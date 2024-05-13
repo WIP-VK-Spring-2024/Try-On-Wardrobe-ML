@@ -1,4 +1,5 @@
 from enum import Enum
+from functools import partial
 
 def form_strategy_0(min_i, min_j, max_i, max_j):
     """
@@ -75,7 +76,7 @@ def form_strategy_3(min_i, min_j, max_i, max_j):
     ]
 
 class PointsFormingSamStrategies(Enum):
-    strategy_0 = form_strategy_0
-    strategy_1 = form_strategy_1
-    strategy_2 = form_strategy_2
-    strategy_3 = form_strategy_3
+    strategy_0 = partial(form_strategy_0)
+    strategy_1 = partial(form_strategy_1)
+    strategy_2 = partial(form_strategy_2)
+    strategy_3 = partial(form_strategy_3)

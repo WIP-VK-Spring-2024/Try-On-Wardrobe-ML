@@ -30,7 +30,7 @@ class SegformerSAM_Pipeline:
     def forward(self,
                 image, # np array
                 point_sam_strategy: PointsFormingSamStrategies \
-                    = PointsFormingSamStrategies.strategy_0,
+                    = PointsFormingSamStrategies.strategy_0.value,
                 save_meta = False,
                 )->dict:
         """
