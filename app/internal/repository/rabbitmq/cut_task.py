@@ -10,6 +10,7 @@ class CutTaskRepository(BaseRepository):
     """Repository for cut model task queue."""
 
     QUEUE_NAME: str = settings.ML.CUT_TASK_QUEUE
+    AVG_RESPONSE_TIME: int = 0.5
 
     async def create(
         self,

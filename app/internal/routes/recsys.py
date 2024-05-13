@@ -28,7 +28,18 @@ async def create_recsys_task(
     status_code=status.HTTP_200_OK,
     description="Check response queue health info.",
 )
-async def health(
+async def resp_health(
     recsys_service: RecSysService = Depends(RecSysService),
 ):
     return await recsys_service.get_resp_repository_info()
+
+@recsys_router.get(
+    "/task/health",
+    response_model=RabbitMQInfo,
+    status_code=status.HTTP_200_OK,
+    description="Check task queue health info.",
+)
+async def task_health(
+    recsys_service: RecSysService = Depends(RecSysService),
+):
+    return await recsys_service.get_task_repository_info()

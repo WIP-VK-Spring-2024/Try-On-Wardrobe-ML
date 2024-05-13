@@ -25,3 +25,6 @@ class CutService:
 
     async def get_resp_repository_info(self) -> RabbitMQInfo:
         return await self.resp_repository.get_queue_info()
+    
+    async def get_task_repository_info(self) -> RabbitMQInfo:
+        return await self.task_repository.get_queue_info()

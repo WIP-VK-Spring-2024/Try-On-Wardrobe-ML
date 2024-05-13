@@ -28,7 +28,18 @@ async def create_cut_task(
     status_code=status.HTTP_200_OK,
     description="Check response queue health info.",
 )
-async def health(
+async def resp_health(
     cut_service: CutService = Depends(CutService),
 ):
     return await cut_service.get_resp_repository_info()
+
+@cut_router.get(
+    "/task/health",
+    response_model=RabbitMQInfo,
+    status_code=status.HTTP_200_OK,
+    description="Check task queue health info.",
+)
+async def task_health(
+    cut_service: CutService = Depends(CutService),
+):
+    return await cut_service.get_task_repository_info()
