@@ -35,6 +35,10 @@ class TryOnFields:
         example=ImageCategory.UPPER_BODY,
         default=ImageCategory.UPPER_BODY,
     )
+    subcategory: Optional[str] = Field(
+        default=None,
+        description="Image subcategory for model description.",
+    )
     file_dir: str = Field(
         description="file dir path.",
         example="try_on/102",
@@ -44,6 +48,7 @@ class TryOnFields:
 class TryOnClothes(BaseTryOnModel):
     clothes_id: UUID4 = TryOnFields.clothes_id
     category: ImageCategory = TryOnFields.category
+    subcategory: Optional[str] = TryOnFields.subcategory
 
 class TryOnListFields:
     """Model list fields of try on model."""

@@ -43,7 +43,8 @@ class ClustersProcessor:
 
     def setup_clusters_amount(self, k=None):
         if k is None:
-            assert len(self.outfits_embeddings) > 2
+            # if len(self.outfits_embeddings) > 2:
+            #     raise ValueError("")
             self.clusters_amount = round(self
                                     .clusters_optimizer
                                     .calculate_optimal_k(

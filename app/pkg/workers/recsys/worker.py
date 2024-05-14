@@ -77,10 +77,16 @@ class RecSysWorker:
                     status_code=status.HTTP_200_OK,
                     message=f"Successfully generated {len(outfit_ids)} clothes.",
                 )
-                logger.debug("End pipeline, generated clothes %s: [%s]", len(outfit_ids), outfit_ids)
+                logger.debug("End pipeline, generated %s clothes for user_id: [%s]", len(outfit_ids), message.user_id)
             except Exception as exc:
                 logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = RecSysResponseCmd(user_id=message.user_id, message=str(exc))
 
-            logger.info("Result model: [%s]", cmd)
+            logger.info(
+                "Result model status: [%s], message [%s], user_id: [%s], total outfits_ids: [%s]",
+                cmd.status_code,
+                cmd.message,
+                cmd.user_id,
+                len(cmd.outfit_ids),
+            )
             await self.resp_repository.create(cmd=cmd)

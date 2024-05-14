@@ -9,6 +9,7 @@ class TryOnRespRepository(BaseRepository):
     """Repository for try on model response queue."""
 
     QUEUE_NAME: str = settings.ML.TRY_ON_RESPONSE_QUEUE
+    AVG_RESPONSE_TIME: int = 9.4
 
     async def create(
         self,
