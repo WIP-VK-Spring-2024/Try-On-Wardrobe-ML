@@ -82,5 +82,11 @@ class RecSysWorker:
                 logger.exception("Pipeline error type: [%s], error: [%s]", type(exc), exc)
                 cmd = RecSysResponseCmd(user_id=message.user_id, message=str(exc))
 
-            logger.info("Result model: [%s]", cmd)
+            logger.info(
+                "Result model status: [%s], message [%s], user_id: [%s], total outfits_ids: [%s]",
+                cmd.status_code,
+                cmd.message,
+                cmd.user_id,
+                len(cmd.outfit_ids),
+            )
             await self.resp_repository.create(cmd=cmd)
