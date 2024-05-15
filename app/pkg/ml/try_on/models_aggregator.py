@@ -47,7 +47,7 @@ class TryOnAggregator:
 
 
     @torch.inference_mode()
-    def __call__(self, input_data: Dict[str, Union[io.BytesIO, ImageCategory]]) -> io.BytesIO:
+    def __call__(self, input_data: Dict[str, Union[io.BytesIO, ImageCategory, str]]) -> io.BytesIO:
         """
         Starts try on process
         
@@ -232,6 +232,10 @@ class TryOnAggregator:
             human["image_human_orig"] = self.bytes_converter.bytes_to_image(
                 human["image_human_orig"]
             )
+            human["image_human_resized"] = self.bytes_converter.bytes_to_image(
+                human["image_human_resized"]
+            )
+
             human['pose'] = self.bytes_converter.bytes_to_image(human['pose'])
 
             human["parse_orig"] = self.bytes_converter.bytes_to_image(
@@ -240,6 +244,10 @@ class TryOnAggregator:
 
             human["keypoints_json"] = self.bytes_converter.bytes_to_json(
                 human["keypoints_json"]
+            )
+
+            human["dense_pose"] = self.bytes_converter.bytes_to_image(
+                human["dense_pose"]
             )
 
         if to_preprocessor:
