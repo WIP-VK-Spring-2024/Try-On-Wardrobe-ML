@@ -51,8 +51,10 @@ class DensePoseEstimation:
         extractors = []
         texture_atlas = None
         texture_atlases_dict = None
-        vis = DensePoseResultsFineSegmentationVisualizer(
+        vis = DensePoseResultsFineSegmentationVisualizer( # DensePoseResultsFineSegmentationVisualizer
             cfg=self.cfg,
+            alpha=1,
+            inplace=True,
             texture_atlas=texture_atlas,
             texture_atlases_dict=texture_atlases_dict,
         )
@@ -75,6 +77,7 @@ class DensePoseEstimation:
         # if image is None:
         #     raise Exception(f"Image {input_path} is not found for pose estimation")
         # assert image.shape == (512, 384, 3)
+        
         image = np.array(pil_image)
         image_data = {
             #"file_name": input_path,
@@ -87,20 +90,18 @@ class DensePoseEstimation:
             image = self.postprocess_outputs(image_data, outputs)
 
             # .npz file creation
-            return image, self.dump_post_process(image_data,
-                                   outputs,
-                                   )
-            
+            return image
             # checking for correct version of outputs format
             # assert isinstance(outputs.pred_densepose, DensePoseChartPredictorOutput)
 
 
     def postprocess_outputs(self, image_data, outputs):
-        image = cv2.cvtColor(image_data["image"], cv2.COLOR_BGR2GRAY)
-        image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
+        image = image_data["image"] # cv2.cvtColor(image_data["image"], cv2.COLOR_BGR2GRAY)
+        black_image = np.zeros(image.shape, dtype=np.uint8)
+        # image = np.tile(image[:, :, np.newaxis], [1, 1, 3])
         data = self.extractor(outputs)
-        image_vis = self.visualizer.visualize(image, data)
-        return image_vis
+        image_vis = self.visualizer.visualize(black_image, data)
+        return image_vis#, data
         # cv2.imwrite(out_fname, image_vis)
 
     def dump_post_process(self, image_data, outputs):

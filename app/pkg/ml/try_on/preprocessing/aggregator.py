@@ -10,7 +10,7 @@ from app.pkg.ml.try_on.preprocessing.preprocessing import Resizer
 from app.pkg.ml.try_on.preprocessing.pose import PoseEstimation
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor, BackgroundModels
 from app.pkg.ml.try_on.preprocessing.human_parsing import HumanParsing 
-
+from app.pkg.ml.try_on.preprocessing.dense_pose import DensePoseEstimation
 
 class BaseProcessor:
     def __init__(self):
@@ -57,6 +57,8 @@ class HumanProcessor(BaseProcessor):
 
         self.model_pose_estim = PoseEstimation()
         self.model_human_parsing = HumanParsing()
+        self.model_dense_pose = DensePoseEstimation()
+        
 
     def consistent_forward(self, image_bytes: io.BytesIO)->Dict[str, io.BytesIO]:
         """
@@ -74,14 +76,24 @@ class HumanProcessor(BaseProcessor):
         return result                
 
     def process(self, image:Image):
-        human_resized = self.resizer(image, color=(255,255,255))
         result = {}
+
+        result["image_human_orig"] = self.bytes_converter.image_to_bytes(image)
+
+        human_resized = self.resizer(image, color=(255,255,255))
+
+        result["image_human_resized"] = self.bytes_converter.image_to_bytes(human_resized)
+    
         pose_out, keypoints_json_dict = self.model_pose_estim(human_resized)
         result["pose"] = self.bytes_converter.image_to_bytes(pose_out)
         result["keypoints_json"] = self.bytes_converter.json_to_bytes(keypoints_json_dict)
 
         parsed_human = self.model_human_parsing(human_resized)
         result["parse_orig"] = self.bytes_converter.image_to_bytes(parsed_human)
-        result["image_human_orig"] = self.bytes_converter.image_to_bytes(human_resized)
+
+        dense_human_array = self.model_dense_pose(human_resized)
+        dense_human = Image.fromarray(dense_human_array)
+        result["dense_pose"] = self.bytes_converter.image_to_bytes(dense_human)
+
         return result
 

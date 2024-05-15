@@ -13,15 +13,8 @@ from torchvision import transforms
 from torchvision.transforms.functional import to_pil_image
 from transformers import AutoTokenizer
 import numpy as np
-# from utils_mask import get_mask_location
-# import apply_net
-# from preprocess.humanparsing.run_parsing import Parsing
-# from preprocess.openpose.run_openpose import OpenPose # TODO: replace to existing path
 from detectron2.data.detection_utils import convert_PIL_to_numpy,_apply_exif_orientation
 
-# from preprocess.humanparsing.run_parsing import Parsing
-# from preprocess.openpose.run_openpose import OpenPose # TODO: replace to existing path
-# from detectron2.data.detection_utils import convert_PIL_to_numpy,_apply_exif_orientation
 from app.pkg.ml.try_on.idm_vton.IDM_VTON.src.tryon_pipeline import StableDiffusionXLInpaintPipeline as TryonPipeline
 from app.pkg.ml.try_on.idm_vton.IDM_VTON.src.unet_hacked_garmnet import UNet2DConditionModel as UNet2DConditionModel_ref
 from app.pkg.ml.try_on.idm_vton.IDM_VTON.src.unet_hacked_tryon import UNet2DConditionModel
@@ -29,6 +22,9 @@ from app.pkg.ml.try_on.idm_vton.IDM_VTON.src.unet_hacked_tryon import UNet2DCond
 from app.pkg.models.app.image_category import ImageCategory
 from app.pkg.settings import settings
 
+from app.pkg.logger import get_logger
+
+logger = get_logger(__name__)
 
 base_path = 'yisol/IDM-VTON'
 
@@ -40,29 +36,30 @@ class IDM_VTON(torch.nn.Module):
     """
     def __init__(self, num_inference_steps=20):
         super(IDM_VTON, self).__init__()
-        self.weight_dtype = torch.float16#torch.float32
-        # self.data_prepr = LadyVtonInputPreprocessor()
+        self.weight_dtype = torch.float16  # torch.float32
         self.device = "cuda:0"
-        # self.dataset = "dresscode"
-        # self.pretrained_model_name_or_path = "stabilityai/stable-diffusion-2-inpainting"
-        # self.enable_xformers_memory_efficient_attention = True
         self.seed = 42
-        # self.num_vstar = 16  # Number of predicted v* images to use
         self.guidance_scale = 2 # 7.5
         self.num_inference_steps = num_inference_steps
-        self.setup_models()
         self.WEIGHTS_PATH = settings.ML.WEIGHTS_PATH
         self.DENSE_POSE_WEIGHTS_PATH = f"{self.WEIGHTS_PATH}/dense_pose.pkl"
 
+        self.height= 1024#1024 # (512, 384)
+        self.width= 768#768
+        self.final_resize = transforms.Resize((self.height, self.width))
+        self.to_tensor = transforms.ToTensor()
+        self.to_pil = transforms.ToPILImage()
+        self.setup_models()
+
 
     def setup_models(self):
-        print('start initing models')
+
         self.unet = UNet2DConditionModel.from_pretrained(
             base_path,
             subfolder="unet",
             torch_dtype=self.weight_dtype,
-        )
-        print('start initing models 1')
+        ).to(self.device, self.weight_dtype)
+        logger.info('Initing tryon. 1/3')
 
         self.unet.requires_grad_(False)
         self.tokenizer_one = AutoTokenizer.from_pretrained(
@@ -71,7 +68,6 @@ class IDM_VTON(torch.nn.Module):
             revision=None,
             use_fast=False,
         )
-        print('start initing models 11')
 
         self.tokenizer_two = AutoTokenizer.from_pretrained(
             base_path,
@@ -80,41 +76,37 @@ class IDM_VTON(torch.nn.Module):
             use_fast=False,
         )
         self.noise_scheduler = DDPMScheduler.from_pretrained(base_path, subfolder="scheduler")
-        print('start initing models 111')
+
+        logger.info('Initing tryon. 2/3')
 
         self.text_encoder_one = CLIPTextModel.from_pretrained(
             base_path,
             subfolder="text_encoder",
             torch_dtype=self.weight_dtype,
-        )
-        print('start initing models 2')
+        ).to(self.device, self.weight_dtype)
+        logger.info('Initing tryon. 3/3')
 
         self.text_encoder_two = CLIPTextModelWithProjection.from_pretrained(
             base_path,
             subfolder="text_encoder_2",
             torch_dtype=self.weight_dtype,
-        )
+        ).to(self.device, self.weight_dtype)
         self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(
             base_path,
             subfolder="image_encoder",
             torch_dtype=self.weight_dtype,
-            )
+            ).to(self.device, self.weight_dtype)
         self.vae = AutoencoderKL.from_pretrained(base_path,
                                             subfolder="vae",
                                             torch_dtype=self.weight_dtype,
-        )
+        ).to(self.device, self.weight_dtype)
 
-        print('start initing models 3')
-
-        # "stabilityai/stable-diffusion-xl-base-1.0",
         self.UNet_Encoder = UNet2DConditionModel_ref.from_pretrained(
             base_path,
             subfolder="unet_encoder",
             torch_dtype=self.weight_dtype,
-        )
-
-        # self.parsing_model = Parsing(0)
-        # self.openpose_model = OpenPose(0)
+        ).to(self.device, self.weight_dtype)
+        logger.info('Initing tryon. 4/4')
 
         self.UNet_Encoder.requires_grad_(False)
         self.image_encoder.requires_grad_(False)
@@ -122,13 +114,6 @@ class IDM_VTON(torch.nn.Module):
         self.unet.requires_grad_(False)
         self.text_encoder_one.requires_grad_(False)
         self.text_encoder_two.requires_grad_(False)
-        self.tensor_transfrom = transforms.Compose(
-                    [
-                        transforms.ToTensor(),
-                        transforms.Normalize([0.5], [0.5]),
-                    ]
-            )
-        self.to_tensor = transforms.ToTensor()
 
         self.pipe = TryonPipeline.from_pretrained(
                 base_path,
@@ -160,22 +145,46 @@ class IDM_VTON(torch.nn.Module):
     @torch.inference_mode()
     def forward(self, input_data, single_cloth=True):
         
-        print("Gotcha state 1")
         if single_cloth:
             model_img = input_data["image"].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
-            mask_img = input_data["inpaint_mask"].to(device=self.device,
-                                                     dtype=self.weight_dtype).unsqueeze(0)
-
+                        
+            mask_img = self.to_pil(input_data["inpaint_mask"]*255).resize((self.width,self.height))
+            
             pose_map = input_data["pose_map"].to(device=self.device,
                                                  dtype=self.weight_dtype).unsqueeze(0)
-            pose_img_input = self.to_tensor(input_data["pose"].resize((768, 1024))).to(device=self.device,
+            pose_img_input = self.to_tensor(input_data["pose"].resize((self.width, self.height))).to(device=self.device,
                                                  dtype=self.weight_dtype).unsqueeze(0)
 
             cloth = input_data["cloth"].to(device=self.device,
                                            dtype=self.weight_dtype).unsqueeze(0)
             im_mask = input_data['im_mask'].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
+            human_img = input_data['image_human_resized']
+            pil_garment = input_data['cloth_orig']
+
+            dense_pose_raw = self.to_tensor(input_data["dense_pose"].resize((self.width,self.height)))
+            # r,g,b = dense_pose_raw[:,:,:]
+            # dense_pose_raw[0,:,:], dense_pose_raw[1,:,:], dense_pose_raw[2,:,:] = r, g, b 
+
+            
+            dense_pose_img = dense_pose_raw.to(device=self.device,
+                                               dtype=self.weight_dtype).unsqueeze(0)
+            # TODO: в с оригинальным пайплайном различается только densepose. Быть аккуратным            
+
+            # path = "/usr/src/app/volume/tmp/idm_try_on/data/"
+            # def save_tensor(tensor, name):
+            #     from torchvision.transforms.functional import to_pil_image
+            #     to_pil_image(tensor.squeeze(0).cpu() ).convert('RGB').save(f"{path}/{name}")
+            # print(f"""
+            # # {type(dense_pose_img)=} {dense_pose_img.shape=}
+            # # """)
+            # save_tensor(cloth,"cloth.png")
+            # save_tensor(dense_pose_img,"pose_img.png")
+            # mask_img.save(f"{path}/mask.png")
+
+            # human_img.save(f"{path}/human_img.png")
+            # pil_garment.save(f"{path}/ip_adapter.png")           
 
             prompt_category = [input_data['category']]
 
@@ -183,9 +192,8 @@ class IDM_VTON(torch.nn.Module):
                 cloth_desc = [input_data['cloth_desc']]
             else:
                 cloth_desc = None
-        # prompt = "model is wearing " + garment_des
+
         negative_prompt = "monochrome, lowres, bad anatomy, worst quality, low quality"
-        print("Gotcha state 2")
 
         if cloth_desc is not None:
             model_prompt = [f'model is wearing {desc}' for
@@ -203,7 +211,7 @@ class IDM_VTON(torch.nn.Module):
             cloth_prompt = [f'a photo of {category_text[category]}'
                     for category in prompt_category]
 
-        print("Gotcha state 3")
+        logger.info(f"Setting text in try on pipeline: {model_prompt=}, {cloth_prompt=}")
 
         with torch.inference_mode():
             (
@@ -230,42 +238,7 @@ class IDM_VTON(torch.nn.Module):
                 negative_prompt=negative_prompt,
             )
 
-            # args = apply_net.create_argument_parser().parse_args((
-            #     'show',
-            #     "app/pkg/ml/try_on/preprocessing/detectron2/projects/DensePose/configs/densepose_rcnn_R_50_FPN_s1x.yaml", # здесь мб с точки должно начинаться
-            #     self.DENSE_POSE_WEIGHTS_PATH,
-            #     'dp_segm',
-            #     '-v',
-            #     '--opts',
-            #     'MODEL.DEVICE',
-            #     'cuda'))
-            # verbosity = getattr(args, "verbosity", None)
-            
-            # human_img_arg = _apply_exif_orientation(model_img) # TODO: .resize((384,512))
-            # human_img_arg =  human_img_arg# convert_PIL_to_numpy(human_img_arg, format="BGR")
-
-            # pose_img = args.func(args, human_img_arg)
-            # pose_img = pose_img[:,:,::-1]    
-            # pose_img = Image.fromarray(pose_img).resize((768,1024))
-            pose_img = pose_img_input
-            print("Lets go")
-            print(
-                f"""
-                prompt_embeds={prompt_embeds.shape},
-                negative_prompt_embeds={negative_prompt_embeds.shape},
-                pooled_prompt_embeds={pooled_prompt_embeds.shape},
-                negative_pooled_prompt_embeds={negative_pooled_prompt_embeds.shape},
-                pose_img = {pose_img.shape},
-                text_embeds_cloth={prompt_embeds_c.shape},
-                # cloth = cloth,
-                mask_image={mask_img.shape},
-                image=model_img,
-                ip_adapter_image = cloth, # в оригинальном пайплайне это pil image
-                """
-
-
-            )
-            generated_image = self.pipe(
+        generated_image = self.pipe(
                 prompt_embeds=prompt_embeds.to(self.device, self.weight_dtype),
                 negative_prompt_embeds=negative_prompt_embeds.to(self.device, self.weight_dtype),
                 pooled_prompt_embeds=pooled_prompt_embeds.to(self.device, self.weight_dtype),
@@ -273,15 +246,14 @@ class IDM_VTON(torch.nn.Module):
                 num_inference_steps=self.num_inference_steps,
                 generator=self.generator,
                 strength = 1.0,
-                pose_img = pose_img.to(self.device, self.weight_dtype),
+                pose_img = dense_pose_img.to(self.device, self.weight_dtype),
                 text_embeds_cloth=prompt_embeds_c.to(self.device, self.weight_dtype),
-                cloth = cloth,
+                cloth = cloth.to(self.device, self.weight_dtype),
                 mask_image=mask_img,
-                image=model_img,
-                height=1024,
-                width=768,
-                ip_adapter_image = cloth, # в оригинальном пайплайне это pil image
+                image=human_img,
+                height=self.height,
+                width=self.width,
+                ip_adapter_image=pil_garment.resize((self.width,self.height)),
                 guidance_scale=self.guidance_scale,
-            )[0]
-          
+            )[0][0]
         return generated_image
