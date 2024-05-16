@@ -13,7 +13,7 @@ from app.pkg.models import TryOnTaskCmd, TryOnResponseCmd, TryOnClothes, ImageCa
 from app.pkg.logger import get_logger
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
-from app.pkg.ml.try_on.models_aggregator import LadyVtonAggregator
+from app.pkg.ml.try_on.models_aggregator import TryOnAggregator
 from app.pkg.models.exceptions.amazon_s3 import AmazonS3Error
 from app.pkg.settings import settings
 
@@ -27,7 +27,7 @@ class TryOnWorker:
     file_service: AmazonS3Service
     clothes_model: ClothProcessor
     human_model = HumanProcessor
-    try_on_model = LadyVtonAggregator
+    try_on_model = TryOnAggregator
 
 
     def __init__(
@@ -37,7 +37,7 @@ class TryOnWorker:
         file_service: AmazonS3Service,
         clothes_model: ClothProcessor,
         human_model: HumanProcessor,
-        try_on_model: LadyVtonAggregator,
+        try_on_model: TryOnAggregator,
     ):
         self.task_repository = task_repository
         self.resp_repository = resp_repository

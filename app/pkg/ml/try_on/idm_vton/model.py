@@ -34,7 +34,7 @@ class IDM_VTON(torch.nn.Module):
     """
     Virtual try on model implementation    
     """
-    def __init__(self, num_inference_steps=20):
+    def __init__(self, num_inference_steps=30):
         super(IDM_VTON, self).__init__()
         self.weight_dtype = torch.float16  # torch.float32
         self.device = "cuda:0"
@@ -59,7 +59,7 @@ class IDM_VTON(torch.nn.Module):
             subfolder="unet",
             torch_dtype=self.weight_dtype,
         ).to(self.device, self.weight_dtype)
-        logger.info('Initing tryon. 1/3')
+        logger.info('Initing tryon. 1/4')
 
         self.unet.requires_grad_(False)
         self.tokenizer_one = AutoTokenizer.from_pretrained(
@@ -77,14 +77,14 @@ class IDM_VTON(torch.nn.Module):
         )
         self.noise_scheduler = DDPMScheduler.from_pretrained(base_path, subfolder="scheduler")
 
-        logger.info('Initing tryon. 2/3')
+        logger.info('Initing tryon. 2/4')
 
         self.text_encoder_one = CLIPTextModel.from_pretrained(
             base_path,
             subfolder="text_encoder",
             torch_dtype=self.weight_dtype,
         ).to(self.device, self.weight_dtype)
-        logger.info('Initing tryon. 3/3')
+        logger.info('Initing tryon. 3/4')
 
         self.text_encoder_two = CLIPTextModelWithProjection.from_pretrained(
             base_path,
@@ -160,7 +160,7 @@ class IDM_VTON(torch.nn.Module):
                                            dtype=self.weight_dtype).unsqueeze(0)
             im_mask = input_data['im_mask'].to(device=self.device,
                                                dtype=self.weight_dtype).unsqueeze(0)
-            human_img = input_data['image_human_resized']
+            human_img = input_data['image_human_try_on']
             pil_garment = input_data['cloth_orig']
 
             dense_pose_raw = self.to_tensor(input_data["dense_pose"].resize((self.width,self.height)))
@@ -172,19 +172,19 @@ class IDM_VTON(torch.nn.Module):
                                                dtype=self.weight_dtype).unsqueeze(0)
             # TODO: в с оригинальным пайплайном различается только densepose. Быть аккуратным            
 
-            # path = "/usr/src/app/volume/tmp/idm_try_on/data/"
-            # def save_tensor(tensor, name):
-            #     from torchvision.transforms.functional import to_pil_image
-            #     to_pil_image(tensor.squeeze(0).cpu() ).convert('RGB').save(f"{path}/{name}")
-            # print(f"""
-            # # {type(dense_pose_img)=} {dense_pose_img.shape=}
-            # # """)
-            # save_tensor(cloth,"cloth.png")
-            # save_tensor(dense_pose_img,"pose_img.png")
-            # mask_img.save(f"{path}/mask.png")
+            path = "/usr/src/app/volume/tmp/idm_try_on/data/"
+            def save_tensor(tensor, name):
+                from torchvision.transforms.functional import to_pil_image
+                to_pil_image(tensor.squeeze(0).cpu() ).convert('RGB').save(f"{path}/{name}")
+            print(f"""
+            # {type(dense_pose_img)=} {dense_pose_img.shape=}
+            # """)
+            save_tensor(cloth,"cloth.png")
+            save_tensor(dense_pose_img,"pose_img.png")
+            mask_img.save(f"{path}/mask.png")
 
-            # human_img.save(f"{path}/human_img.png")
-            # pil_garment.save(f"{path}/ip_adapter.png")           
+            human_img.save(f"{path}/human_img.png")
+            pil_garment.save(f"{path}/ip_adapter.png")           
 
             prompt_category = [input_data['category']]
 

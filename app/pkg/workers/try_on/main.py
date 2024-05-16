@@ -8,7 +8,7 @@ from app.pkg.workers.try_on.worker import TryOnWorker
 from app.internal.services import AmazonS3Service
 from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.try_on.preprocessing.aggregator import HumanProcessor
-from app.pkg.ml.try_on.models_aggregator import LadyVtonAggregator
+from app.pkg.ml.try_on.models_aggregator import TryOnAggregator
 from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
@@ -24,7 +24,7 @@ def start_worker():
 
     clothes_model = ClothProcessor()
     human_model = HumanProcessor()
-    try_on_model = LadyVtonAggregator()
+    try_on_model = TryOnAggregator()
 
     model_worker = TryOnWorker(
         task_repository=task_repository,

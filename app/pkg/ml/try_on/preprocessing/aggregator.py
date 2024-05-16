@@ -16,7 +16,6 @@ class BaseProcessor:
     def __init__(self):
         self.bytes_converter = BytesConverter()
 
-
 class ClothProcessor(BaseProcessor):
     """
     Class for processing clothes. Puts into worker
@@ -53,7 +52,8 @@ class HumanProcessor(BaseProcessor):
     """
     def __init__(self):
         super().__init__()
-        self.resizer = Resizer()
+        self.resizer = Resizer(try_on_height=1024,
+                               try_on_width=768)
 
         self.model_pose_estim = PoseEstimation()
         self.model_human_parsing = HumanParsing()
@@ -80,18 +80,21 @@ class HumanProcessor(BaseProcessor):
 
         result["image_human_orig"] = self.bytes_converter.image_to_bytes(image)
 
-        human_resized = self.resizer(image, color=(255,255,255))
+        human_resized_try_on = self.resizer(image, color=(255,255,255))
+        result["image_human_try_on"] = self.bytes_converter.image_to_bytes(human_resized_try_on)
 
-        result["image_human_resized"] = self.bytes_converter.image_to_bytes(human_resized)
+        human_resized_preproc = self.resizer.stretch_resize(human_resized_try_on, preproc=True)
+        result["image_human_preproc"] = self.bytes_converter.image_to_bytes(human_resized_preproc)
     
-        pose_out, keypoints_json_dict = self.model_pose_estim(human_resized)
+
+        pose_out, keypoints_json_dict = self.model_pose_estim(human_resized_preproc)
         result["pose"] = self.bytes_converter.image_to_bytes(pose_out)
         result["keypoints_json"] = self.bytes_converter.json_to_bytes(keypoints_json_dict)
 
-        parsed_human = self.model_human_parsing(human_resized)
+        parsed_human = self.model_human_parsing(human_resized_preproc)
         result["parse_orig"] = self.bytes_converter.image_to_bytes(parsed_human)
 
-        dense_human_array = self.model_dense_pose(human_resized)
+        dense_human_array = self.model_dense_pose(human_resized_preproc)
         dense_human = Image.fromarray(dense_human_array)
         result["dense_pose"] = self.bytes_converter.image_to_bytes(dense_human)
 
