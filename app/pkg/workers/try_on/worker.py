@@ -126,6 +126,7 @@ class TryOnWorker:
             {
                 "category": ImageCategory(clothe.category),
                 "cloth": image,
+                "cloth_desc": clothe.subcategory,
             } 
             for clothe, image in zip(clothes, clothes_images)
         ]

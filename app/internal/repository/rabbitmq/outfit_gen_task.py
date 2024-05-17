@@ -10,6 +10,7 @@ class OutfitGenTaskRepository(BaseRepository):
     """Repository for outfit generation model task queue."""
 
     QUEUE_NAME: str = settings.ML.OUTFIT_GEN_TASK_QUEUE
+    AVG_RESPONSE_TIME: int = 0.2
 
     async def create(
         self,

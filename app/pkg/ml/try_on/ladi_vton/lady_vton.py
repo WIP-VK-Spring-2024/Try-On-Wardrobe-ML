@@ -29,9 +29,11 @@ from app.pkg.ml.try_on.ladi_vton.src.utils.set_seeds import set_seed
 from app.pkg.ml.try_on.ladi_vton.src.vto_pipelines.tryon_pipe import StableDiffusionTryOnePipeline
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
 from app.pkg.models.app.image_category import ImageCategory
-from app.pkg.logger import get_logger
-from app.pkg.settings import settings
 
+from app.pkg.settings import settings
+from app.pkg.logger import get_logger
+
+logger = get_logger(__name__)
 #PROJECT_ROOT = Path(__file__).absolute().parents[1].absolute()
 torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
 os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)
@@ -219,7 +221,7 @@ class LadyVton(torch.nn.Module):
             text = [f'a photo of a model wearing {category_text[category]} {" $ " * self.num_vstar}'
                     for category in prompt_category]
 
-        logger.info(f"Setting text in try on pipeline = {text}")
+        logger.info("Text, using in try on model: %s", text)
         # Tokenize text
         tokenized_text = self.tokenizer(text,
                                         max_length=self.tokenizer.model_max_length,

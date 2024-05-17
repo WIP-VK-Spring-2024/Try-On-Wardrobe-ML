@@ -7,7 +7,7 @@ from functools import lru_cache
 
 from dotenv import find_dotenv
 from pydantic import PostgresDsn, validator, root_validator, AmqpDsn
-from pydantic import AnyUrl, BaseSettings, SecretStr, PositiveInt
+from pydantic import BaseSettings, SecretStr, PositiveInt
 
 from app.pkg.models.core.logger import LoggerLevel
 
@@ -123,6 +123,16 @@ class APIServer(_Settings):
     #: SecretStr: X-ACCESS-TOKEN for access to API.
     X_ACCESS_TOKEN: SecretStr = "secret"
 
+    # Configs for api instance
+    CONFIGS: Optional[dict[str, str]] = None
+
+    @root_validator(pre=True)
+    def build_configs(cls, values: dict):  # pylint: disable=no-self-argument
+        values["CONFIGS"] = {
+            "root_path": f"/{values.get('INSTANCE_APP_NAME')}",
+        }
+        return values
+
 
 class Logging(_Settings):
     """Logging settings."""
@@ -189,6 +199,9 @@ class Settings(_Settings):
     CUT_DIR: str = "cut"
 
     API_FILESYSTEM_FOLDER: pathlib.Path = pathlib.Path("./volume/data")
+
+    # ENVIRONMENT
+    IS_PROD: bool = False
 
     class Config:
         env_file = ".env"
