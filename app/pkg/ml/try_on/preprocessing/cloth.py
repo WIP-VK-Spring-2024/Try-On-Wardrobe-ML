@@ -11,7 +11,7 @@ from torch import nn
 from app.pkg.ml.try_on.preprocessing.RMBG.briarmbg import BriaRMBG
 from app.pkg.ml.try_on.preprocessing.RMBG.utilities import preprocess_image, postprocess_image
 from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
-
+from app.pkg.ml.utils.device import get_device
 from app.pkg.settings import settings
 
 torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
@@ -28,7 +28,7 @@ class ClothPreprocessor:
     def __init__(self, model_type):
         self.model_type = model_type
  
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = get_device(prefer_device="cuda:1")
 
         if model_type == BackgroundModels.SegFormerB3:
             self.net = AutoModelForSemanticSegmentation.from_pretrained("sayeed99/segformer_b3_clothes")

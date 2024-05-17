@@ -7,6 +7,7 @@ from torch.nn import Softmax
 from PIL import Image
 
 from app.pkg.ml.buffer_converters import BytesConverter
+from app.pkg.ml.utils.device import get_device
 from app.pkg.logger import get_logger
 
 logger = get_logger(__name__)
@@ -16,11 +17,11 @@ def max_normalize(probs):
 
 
 class AutoTagger:
-    def __init__(self, device="cuda:0"):
-        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+    def __init__(self, ):
+        self.device = get_device(prefer_device="cuda:1")
+        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
-        self.device = device
         self.bytes_converter = BytesConverter()
         self.normalize = max_normalize#Softmax(dim=1)
 
