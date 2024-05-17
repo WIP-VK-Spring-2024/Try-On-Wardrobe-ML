@@ -29,7 +29,7 @@ class BackgroundModels(Enum):
 
 class ClothPreprocessor:
     def __init__(self,
-                 model_type:BackgroundModels = BackgroundModels.BriaRMBG,
+                 model_type:BackgroundModels = BackgroundModels.SamPipeline,
                  lightweight=False,
                  ):
         """
