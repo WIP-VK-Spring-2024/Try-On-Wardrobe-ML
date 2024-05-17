@@ -9,6 +9,7 @@ class RecSysRespRepository(BaseRepository):
     """Repository for recsys model response queue."""
 
     QUEUE_NAME: str = settings.ML.RECSYS_RESPONSE_QUEUE
+    AVG_RESPONSE_TIME: int = 0.1
 
     async def create(
         self,

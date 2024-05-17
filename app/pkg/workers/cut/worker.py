@@ -127,7 +127,7 @@ class CutWorker:
         
         cmd = ClothesVectorCreateCmd(clothes_id=clothes_id, tensor=clothes_tensor)
         await self.clothes_vector_repository.create(cmd)
-        logger.debug("End vectorizer, result: [%s].", clothes_tensor)
+        logger.debug("End vectorizer.")
 
         return cloth_image, classification
 

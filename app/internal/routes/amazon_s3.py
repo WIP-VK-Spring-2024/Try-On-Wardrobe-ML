@@ -52,6 +52,7 @@ async def read(
     folder: Optional[str] = None,
     aws_service: AmazonS3Service = Depends(AmazonS3Service),
 ):
+    # TODO: Make it more flexible.
     file_content = aws_service.read(file_name=file_name, folder=folder)
     return StreamingResponse(
         file_content, 
