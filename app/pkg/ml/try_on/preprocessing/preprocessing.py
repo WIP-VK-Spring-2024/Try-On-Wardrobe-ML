@@ -80,7 +80,7 @@ def remove_pad(image:np.ndarray,
         bottom_pad = round(max(0,(target_height-resize_height)+0.001)/2) # if need pad = 3. It will be int(1.5) + round(1.5) = 3
 
         return image[top_pad:-bottom_pad,:,:]
-    else:
+    elif target_ratio < im_ratio:
         # Fixed by height
         resize_height = target_height
         resize_width = round(resize_height / im_ratio)
@@ -89,6 +89,8 @@ def remove_pad(image:np.ndarray,
         right_pad = round(max(0,(target_width-resize_width)+0.001)/2) # if need pad = 3. It will be int(1.5) + round(1.5) = 3
 
         return image[:,left_pad:-right_pad,:]
+    else:
+        return image
 
     # image_resize = cv2.resize(im, (resize_width, resize_height), interpolation = cv2.INTER_AREA)
 

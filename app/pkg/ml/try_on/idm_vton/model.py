@@ -142,6 +142,14 @@ class IDM_VTON(torch.nn.Module):
         )
         return batch
 
+    def prepare_dense_pose(self, dense_pil):
+        resized = dense_pil.resize((self.width,self.height))
+        dense_np = np.array(resized)[:, :, ::-1]
+        dense_pose_swapped_channels = self.to_tensor(Image.fromarray(dense_np))
+                       
+        return dense_pose_swapped_channels.to(device=self.device,
+                                              dtype=self.weight_dtype).unsqueeze(0)
+
     @torch.inference_mode()
     def forward(self, input_data, single_cloth=True):
         
@@ -163,13 +171,7 @@ class IDM_VTON(torch.nn.Module):
             human_img = input_data['image_human_try_on']
             pil_garment = input_data['cloth_orig']
 
-            dense_pose_raw = self.to_tensor(input_data["dense_pose"].resize((self.width,self.height)))
-            # r,g,b = dense_pose_raw[:,:,:]
-            # dense_pose_raw[0,:,:], dense_pose_raw[1,:,:], dense_pose_raw[2,:,:] = r, g, b 
-
-            
-            dense_pose_img = dense_pose_raw.to(device=self.device,
-                                               dtype=self.weight_dtype).unsqueeze(0)
+            dense_pose_img = self.prepare_dense_pose(input_data["dense_pose"])
             # TODO: в с оригинальным пайплайном различается только densepose. Быть аккуратным            
 
             path = "/usr/src/app/volume/tmp/idm_try_on/data/"
