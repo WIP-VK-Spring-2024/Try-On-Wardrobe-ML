@@ -7,13 +7,11 @@ from skimage import io
 import torch
 from PIL import Image
 from torch import nn
-from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
 
-from app.pkg.ml.try_on.preprocessing.RMBG.briarmbg import BriaRMBG
 from app.pkg.ml.try_on.preprocessing.RMBG.utilities import preprocess_image, postprocess_image
-from app.pkg.ml.try_on.preprocessing.cut_sam_pipeline.sam_pipeline import SegformerSAM_Pipeline
 from app.pkg.ml.try_on.preprocessing.cut_sam_pipeline.sam_points_strategies import PointsFormingSamStrategies
 
+from app.pkg.ml.utils.device import get_device
 from app.pkg.settings import settings
 
 torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
@@ -38,18 +36,23 @@ class ClothPreprocessor:
         """
         self.model_type = model_type
  
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = get_device(prefer_device="cuda:1")
 
         if model_type == BackgroundModels.SegFormerB3:
+            from transformers import SegformerImageProcessor, AutoModelForSemanticSegmentation
+
             self.net = AutoModelForSemanticSegmentation.from_pretrained("sayeed99/segformer_b3_clothes")
             self.processor = SegformerImageProcessor.from_pretrained("sayeed99/segformer_b3_clothes")
             self.net = self.net.to(self.device)
 
         elif model_type == BackgroundModels.BriaRMBG:
+            from app.pkg.ml.try_on.preprocessing.RMBG.briarmbg import BriaRMBG
             self.net = BriaRMBG.from_pretrained("briaai/RMBG-1.4")
             self.net = self.net.to(self.device)
 
         elif model_type == BackgroundModels.SamPipeline:
+            from app.pkg.ml.try_on.preprocessing.cut_sam_pipeline.sam_pipeline import SegformerSAM_Pipeline
+
             self.net = SegformerSAM_Pipeline(lightweight)
 
         else:

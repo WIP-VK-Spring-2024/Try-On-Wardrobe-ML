@@ -35,7 +35,7 @@ class LocalRecSys:
             return_cloth_fields - fields, that must be in each returning cloth
             use_top_p - is need to use top_p algorithm
         """
-        self.device = get_device("cuda:1")
+        self.device = get_device(prefer_device="cuda:1")
         self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(self.device)
         self.processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.tokenizer =  AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32")
