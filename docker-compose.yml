@@ -12,7 +12,7 @@ services:
       - ${DATA_VOLUME}:/usr/src/app/volume
  
     ports:
-      - 0.0.0.0:8000:8000
+      - 127.0.0.1:8000:8000
 
     command: bash -c "poetry run uvicorn app:create_app --host 0.0.0.0 --port 8000"
 

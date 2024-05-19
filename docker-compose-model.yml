@@ -46,6 +46,8 @@ services:
               capabilities: [gpu]
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - TRANSFORMERS_CACHE=${ML__WEIGHTS_PATH}
+      - HF_HOME=${ML__WEIGHTS_PATH}
 
     env_file:
       - .env
