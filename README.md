@@ -16,10 +16,22 @@ docker compose -f docker-compose-model.yml up -d --build --force-recreate
 ```
 
 ## System requirements
-Предусмотрены две версии проекта:
-    <br>- **Основная версия**. Все модели показывают максимально возможное качество.
-    <u>_Требования_</u>: 2 x 24 Гб GPU. Например, _2 x Tesla A5000_
-    <br>- **Дебаг версия**. Допускается использование облегченных моделей обрезки. <u>_Требования_</u>: 1 x 24 Гб GPU. Например, _1 x Tesla A5000_. Версия предназначена для отладки основных компонентов проекта. Не рекомендуется использование данной версии в качестве основной, т.к возможно переполнение памяти видеокарты при одновременном выполнении нескольких задач. 
+В проекте используются четыре разные модели (но внутри себя являются составными и используют другие модели):
+#### 1. Модель примерки Try On.
+- Требует 19 GB GPU
+#### 2. Модель обрезки Cut.
+> Возможны конфигурации
+- Требует 1 GB GPU. Облегченная версия модели, не рекомендуется использовать в полноценном продукте. Задается установкой в ```.env``` ```ML__IS_CUT_LIGHT_WEIGHT=True```
+- Требует 8 GB GPU. Рекомендуется использовать в полноценном продукте. Задается установкой в ```.env``` ```ML__IS_CUT_LIGHT_WEIGHT=False```
+#### 3. Модель генерации комплектов одежды Outfit gen.
+- Требует 1 GB GPU
+#### 4. Модель рекомендательной системы комплектов Rec Sys.
+- Не требует GPU, считается на CPU
+
+### Примеры
+> **Максимальный режим**: 2 x 24 Гб GPU. Например, 2 x Tesla A5000
+
+> **Облегченный режим**. 1 x 24 Гб GPU. Например, _1 x Tesla A5000_. Допускается использование облегченных моделей обрезки 
 
 
 ## ML usage
@@ -42,7 +54,7 @@ Classes for working has folowing view:
 2) __Human Preprocessing__: app/pkg/ml/try_on/preprocessing/aggregator.py - class: HumanProcessor. method: consistent_forward(image_bytes)
 <br>Human processing launches when user has uploded human image
 
-3) __Try on__: app/pkg/ml/try_on/lady_vton.py  class: LadyVtonAggregator. method: \_\_call\_\_(dict)
+3) __Try on__: app/pkg/ml/try_on/lady_vton.py  class: TryOnAggregator. method: \_\_call\_\_(dict)
 <br>Try on processing launches when user has requested to try on. Input dict format is:
 ```
 {
