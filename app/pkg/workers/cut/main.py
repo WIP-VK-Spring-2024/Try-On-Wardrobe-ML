@@ -11,6 +11,7 @@ from app.pkg.ml.try_on.preprocessing.aggregator import ClothProcessor
 from app.pkg.ml.autotags.autotag import AutoTagger
 from app.pkg.ml.auto_clothing_set.autoset import LocalRecSys
 from app.pkg.logger import get_logger
+from app.pkg.settings import settings
 
 logger = get_logger(__name__)
 
@@ -25,7 +26,7 @@ def start_worker():
 
     file_service = AmazonS3Service()
 
-    clothes_model = ClothProcessor()
+    clothes_model = ClothProcessor(light_weight=settings.ML.IS_CUT_LIGHT_WEIGHT)
     autotag_model = AutoTagger()
     vectorizer_model = LocalRecSys()
 

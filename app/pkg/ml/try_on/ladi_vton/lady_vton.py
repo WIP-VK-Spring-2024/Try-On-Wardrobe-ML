@@ -42,6 +42,7 @@ os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
 # Will error if the minimal version of diffusers is not installed. Remove at your own risks.
 check_min_version("0.10.0.dev0")
 
+logger = get_logger(__name__)
 
 
 class LadyVton(torch.nn.Module):
@@ -163,7 +164,7 @@ class LadyVton(torch.nn.Module):
             im_mask = self.to_batch(input_data['im_mask'])
             prompt_category = input_data['category']
 
-            if input_data["cloth_desc"][0] is not None and len(input_data["cloth_desc"][0]) > 0:
+            if len(input_data["cloth_desc"])>0 and input_data["cloth_desc"][0] is not None and len(input_data["cloth_desc"][0]) > 0:
                 cloth_desc = input_data['cloth_desc']
             else:
                 cloth_desc = None

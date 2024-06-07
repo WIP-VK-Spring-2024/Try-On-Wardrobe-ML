@@ -58,9 +58,9 @@ clothes_types = [ImageCategory.DRESSES,
                  ImageCategory.LOWER_BODY]
 
 class LadyVtonInputPreprocessor:
-    def __init__(self,):
-        self.width = 384
-        self.height = 512
+    def __init__(self, width=384, height=512):
+        self.width = width
+        self.height = height
         self.transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
@@ -85,7 +85,8 @@ class LadyVtonInputPreprocessor:
 
 
     def prepare_cloth(self, input_data):
-        input_data['cloth'] = self.preprocess_cloth(input_data['cloth'])
+        input_data['cloth_orig'] = input_data['cloth'] # pil image
+        input_data['cloth'] = self.preprocess_cloth(input_data['cloth']) # normalized tensor
 
 
     def preprocess_human_orig(self, image):

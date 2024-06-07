@@ -18,7 +18,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from diffusers.utils import BaseOutput, randn_tensor
+from diffusers.utils import BaseOutput
+from diffusers.utils.torch_utils import randn_tensor
 from diffusers.models.unet_2d_blocks import UNetMidBlock2D, get_up_block
 from diffusers.models.unet_2d_blocks import get_down_block
 
@@ -84,7 +85,7 @@ class Encoder(nn.Module):
             resnet_act_fn=act_fn,
             output_scale_factor=1,
             resnet_time_scale_shift="default",
-            attn_num_head_channels=None,
+            # attn_num_head_channels=None,
             resnet_groups=norm_num_groups,
             temb_channels=None,
         )
@@ -145,7 +146,7 @@ class Decoder(nn.Module):
             resnet_act_fn=act_fn,
             output_scale_factor=1,
             resnet_time_scale_shift="default",
-            attn_num_head_channels=None,
+            # attn_num_head_channels=None,
             resnet_groups=norm_num_groups,
             temb_channels=None,
         )

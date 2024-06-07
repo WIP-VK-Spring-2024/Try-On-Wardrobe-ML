@@ -1,31 +1,60 @@
 from typing import List, Dict, Union
+import os
 import io
 from copy import deepcopy
+from enum import Enum
 
 import torch
+from PIL import Image 
 
 from app.pkg.ml.try_on.ladi_vton.lady_vton_prepr import LadyVtonInputPreprocessor
-from app.pkg.ml.try_on.ladi_vton.lady_vton import LadyVton
+
 from app.pkg.ml.try_on.preprocessing.cloth import ClothPreprocessor
 from app.pkg.ml.try_on.postprocessing.fix_face import FaceFixer
 from app.pkg.ml.buffer_converters import BytesConverter
 from app.pkg.models.app.image_category import ImageCategory
-
+from app.pkg.ml.try_on.preprocessing.preprocessing import Resizer
 from app.pkg.logger import get_logger
+
+from app.pkg.settings import settings
+
+torch.hub.set_dir(settings.ML.WEIGHTS_PATH)
+os.environ['TRANSFORMERS_CACHE'] = str(settings.ML.WEIGHTS_PATH)
+os.environ['HF_HOME'] = str(settings.ML.WEIGHTS_PATH)
+os.environ['HF_HUB_CACHE'] = str(settings.ML.WEIGHTS_PATH)
+
 
 logger = get_logger(__name__)
 
-class LadyVtonAggregator:
+class TryOnModels(Enum):
+    LADY_VTON = "LADY_VTON"
+    IDM_VTON = "IDM_VTON"
 
-    def __init__(self):
+
+class TryOnAggregator:
+
+    def __init__(self,
+                 model_type: TryOnModels = TryOnModels.IDM_VTON):
+        #  TODO: in preprocessing insert resizing to full hd (if idm vton chosen)
         self.preprocessor = LadyVtonInputPreprocessor()
-        self.model = LadyVton()
+        if model_type == TryOnModels.LADY_VTON:
+            from app.pkg.ml.try_on.ladi_vton.lady_vton import LadyVton
+            self.model = LadyVton()
+        elif model_type == TryOnModels.IDM_VTON:
+            from app.pkg.ml.try_on.idm_vton.model import IDM_VTON
+            self.model = IDM_VTON()
+        else:
+            raise ValueError("Not valid tryon model type")
+ 
         self.face_fix_model = FaceFixer()
         self.bytes_converter = BytesConverter()
+        self.resizer = Resizer(try_on_height=1024,
+                               try_on_width=768)
+        # еще пара таких ресайзеров в препроцессинге
 
 
     @torch.inference_mode()
-    def __call__(self, input_data: Dict[str, Union[io.BytesIO, ImageCategory]]) -> io.BytesIO:
+    def __call__(self, input_data: Dict[str, Union[io.BytesIO, ImageCategory, str]]) -> io.BytesIO:
         """
         Starts try on process
         
@@ -33,7 +62,8 @@ class LadyVtonAggregator:
             input_data - Dict[str, Union[io.BytesIO, ImageCategory]] - dict, contained folowing structure:
                 {
                 "image_human_orig":io.BytesIO,  # - image with human
-                "parsed_human":io.BytesIO,  # - image with parsed human 
+                "parsed_human":io.BytesIO,  # - image with parsed human
+                "dense_pose":io.BytesIO
                 "keypoints_json":io.BytesIO # human keypoints json
                 "cloth":io.BytesIO # cloth (without background) image bytes
                 "cloth_desc":str # description of cloth. Mainly cloth subcategory
@@ -45,10 +75,48 @@ class LadyVtonAggregator:
         self.prepare_human(input_data)
 
         result_image = self.model.forward(input_data)
+
+        # try_on_image_no_borders = self.resizer.remove_borders(
+        #     image=result_image,
+        #     original_image=input_data["image_human_orig"]
+        # )
+        # no_try_on_image_no_borders = (
+        #     input_data["image_human_orig"]
+        #     .resize(
+        #         try_on_image_no_borders.size
+        #         )
+        #     )
+
+        # fixed_face_image = self.face_fix_model.fix_face(
+        #     orig_image=no_try_on_image_no_borders,
+        #     result_image=try_on_image_no_borders)
+        final_image = self.postprocess(result_image=result_image, input_data=input_data)
+
+        return self.bytes_converter.image_to_bytes(final_image)
+
+    def postprocess(self,
+                    result_image:Image.Image,
+                    input_data:dict):
+        """
+        Releases postprocessing of try on:
+        - removing borders (from pad resize)
+        - fixing face
+        """
+        try_on_image_no_borders = self.resizer.remove_borders(
+            image=result_image,
+            original_image=input_data["image_human_orig"]
+        )
+        no_try_on_image_no_borders = (
+            input_data["image_human_orig"]
+            .resize(
+                try_on_image_no_borders.size
+                )
+            )
+
         fixed_face_image = self.face_fix_model.fix_face(
-            orig_image=input_data["image_human_orig"],
-            result_image=result_image)
-        return self.bytes_converter.image_to_bytes(fixed_face_image)
+            orig_image=no_try_on_image_no_borders,
+            result_image=try_on_image_no_borders)
+        return fixed_face_image
 
     @torch.inference_mode()
     def batch_try_on(self,
@@ -82,6 +150,7 @@ class LadyVtonAggregator:
             'cloth':[],
             'im_mask':[],
             'image_human_orig':[],
+            'cloth_desc':[],
         }
 
         for cloth in clothes:
@@ -89,9 +158,13 @@ class LadyVtonAggregator:
 
             human_per_cloth = deepcopy(human)
             human_per_cloth['category'] = cloth["category"]
+            # human_per_cloth['cloth_desc'] = cloth["cloth_desc"]
             self.preprocessor.prepare_human(human_per_cloth)
 
             input_data['cloth'].append(cloth['cloth'])
+            if cloth['cloth_desc'] is not None and cloth['cloth_desc'] != '':
+                input_data['cloth_desc'].append(cloth['cloth_desc'])
+            
             input_data['image'].append(human_per_cloth['image'])
             input_data['inpaint_mask'].append(human_per_cloth['inpaint_mask'])
             input_data['pose_map'].append(human_per_cloth['pose_map'])
@@ -114,7 +187,8 @@ class LadyVtonAggregator:
 
 
     @torch.inference_mode()
-    def try_on_set(self, human: Dict[str, io.BytesIO],
+    def try_on_set(self,
+                   human: Dict[str, io.BytesIO],
                    clothes: List[Dict[str, Union[io.BytesIO, ImageCategory]]],
                    ) -> io.BytesIO:
         """
@@ -140,7 +214,7 @@ class LadyVtonAggregator:
         # convert bytearray into pil image
         self.prepare_human(human, to_preprocessor=False)
         #result_image = human["image_human_orig"]
-        result_image = human["image_human_orig"]
+        result_image = human["image_human_try_on"]
 
         for cloth in clothes:
             self.prepare_cloth(cloth)
@@ -168,7 +242,7 @@ class LadyVtonAggregator:
                 lower_human = deepcopy(human)
                 lower_human['category'] = cloth["category"]
                 # making the input, output of previous step
-                lower_human['image_human_orig'] = result_image 
+                lower_human['image_human_try_on'] = result_image 
                 self.preprocessor.prepare_human(lower_human)
                 input_data = self.get_try_on_data(human=lower_human, cloth=cloth)
                 result_image = self.model.forward(input_data)
@@ -178,11 +252,9 @@ class LadyVtonAggregator:
             logger.warn("[TryOnSet] Not found lower body cloth")
 
 
-        fixed_face_image = self.face_fix_model.fix_face(
-            orig_image=human["image_human_orig"],
-            result_image=result_image)
+        final_image = self.postprocess(result_image=result_image, input_data=human)
 
-        return self.bytes_converter.image_to_bytes(fixed_face_image)
+        return self.bytes_converter.image_to_bytes(final_image)
 
 
     def get_try_on_data(self, human: dict, cloth:dict):
@@ -203,8 +275,13 @@ class LadyVtonAggregator:
         """
         if to_pil:
             human["image_human_orig"] = self.bytes_converter.bytes_to_image(
+                human["image_human_orig"]
+            )
+            human["image_human_try_on"] = self.bytes_converter.bytes_to_image(
+                human["image_human_try_on"]
+            )
 
-            human["image_human_orig"])
+            human['pose'] = self.bytes_converter.bytes_to_image(human['pose'])
 
             human["parse_orig"] = self.bytes_converter.bytes_to_image(
                 human["parse_orig"]
@@ -212,6 +289,10 @@ class LadyVtonAggregator:
 
             human["keypoints_json"] = self.bytes_converter.bytes_to_json(
                 human["keypoints_json"]
+            )
+
+            human["dense_pose"] = self.bytes_converter.bytes_to_image(
+                human["dense_pose"]
             )
 
         if to_preprocessor:
