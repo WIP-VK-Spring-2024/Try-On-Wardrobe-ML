@@ -35,7 +35,6 @@ docker compose -f docker-compose-model.yml up -d --build --force-recreate
 
 **Облегченный режим**: 1 x 24 Гб GPU. Например, 1 x Tesla A5000. Допускается использование облегченных моделей обрезки 
 
-
 ## ML usage
 > За неимением времени на разработку в проекте используется requirements.txt для запуска ML части. В планах его перенести в pyproject.toml.
 
