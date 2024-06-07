@@ -10,7 +10,8 @@ import torch
 import torch.nn as nn
 
 from diffusers.configuration_utils import ConfigMixin, register_to_config
-from diffusers.utils import BaseOutput, apply_forward_hook
+from diffusers.utils import BaseOutput
+from diffusers.utils.accelerate_utils import  apply_forward_hook
 from diffusers.models.modeling_utils import ModelMixin
 from .vae import Decoder, DecoderOutput, DiagonalGaussianDistribution, Encoder
 

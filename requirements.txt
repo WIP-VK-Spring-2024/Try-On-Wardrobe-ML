@@ -1,6 +1,7 @@
 opencv-python==4.7.0.72 
-diffusers==0.14.0
-transformers==4.27.3
+diffusers==0.25.0
+einops==0.7.0
+transformers==4.36.2
 scipy
 matplotlib
 scikit-image

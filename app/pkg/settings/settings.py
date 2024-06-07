@@ -180,6 +180,12 @@ class ML(_Settings):
     RECSYS_TASK_QUEUE: str = "recsys"
     RECSYS_RESPONSE_QUEUE: str = "recsys_response"
 
+    # Config models
+    #: bool: is need to use light weight version of cut model (only for SAM pipeline).
+    # if True, cut model requires ~ 1 GB GPU of memory
+    # if False, cut model requires ~ 8 GB GPU of memory
+    IS_CUT_LIGHT_WEIGHT: bool = False
+
 class Settings(_Settings):
     """APP settings."""
 
